@@ -1,0 +1,24 @@
+# CCS / CCS Theia 编译产物
+Debug/
+Release/
+*.out
+*.obj
+*.map
+*.hex
+*.d
+*.ppxml
+
+# CCS 工程配置（可选，看你是否想同步这些）
+.launches/
+.settings/
+.ccsproject
+.cproject
+.project
+
+# IDE 缓存
+.metadata/
+RemoteSystemsTempFiles/
+
+# Windows 系统文件
+Thumbs.db
+desktop.ini
