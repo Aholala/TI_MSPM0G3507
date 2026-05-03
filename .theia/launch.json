@@ -1,0 +1,67 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "model",
+            "type": "ccs-debug",
+            "request": "launch",
+            "projectInfo": {
+                "name": "model",
+                "resourceId": "/model"
+            },
+            "connections": [
+                {
+                    "name": "SEGGER J-Link Emulator_0",
+                    "cores": [
+                        {
+                            "name": "CORTEX_M0P",
+                            "debuggerSettings": {
+                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues/>\n"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "02_GPIO",
+            "type": "ccs-debug",
+            "request": "launch",
+            "projectInfo": {
+                "name": "02_GPIO",
+                "resourceId": "/02_GPIO"
+            },
+            "connections": [
+                {
+                    "name": "SEGGER J-Link Emulator_0",
+                    "cores": [
+                        {
+                            "name": "CORTEX_M0P",
+                            "debuggerSettings": {
+                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues/>\n"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "01_LED",
+            "type": "ccs-debug",
+            "request": "launch",
+            "projectInfo": {
+                "name": "01_LED",
+                "resourceId": "/01_LED"
+            }
+        },
+        {
+            "name": "03_OLED",
+            "type": "ccs-debug",
+            "request": "launch",
+            "projectInfo": {
+                "name": "03_OLED",
+                "resourceId": "/03_OLED"
+            }
+        }
+    ]
+}
