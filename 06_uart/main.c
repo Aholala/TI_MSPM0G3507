@@ -31,28 +31,37 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "stdio.h"
-#include "User/Bsp/Delay.h"
-#include "User/Bsp/oled.h"
+#include "delay.h"
+#include "oled.h"
+#include <stdio.h>
+#include "uart.h"
 
 int main(void)
 {
     SYSCFG_DL_init();
-
     OLED_Init();
-    OLED_ColorTurn(0);
-    OLED_DisplayTurn(0);
+    OLED_ColorTurn(0);//0正常显示，1 反色显示
+    OLED_DisplayTurn(0);//0正常显示 1 屏幕翻转显示
     OLED_Clear();
+    NVIC_EnableIRQ(PRINT_INST_INT_IRQN);
 
-    while (1)
-    {
-        char oled_str[50];
-        int int_a = 20;
-        sprintf(oled_str, "Interger:%d", int_a);
-        OLED_Refresh();
+    while (1) {
+        // Toggle the LED every 500 ms
+        // char oled_str[50];
+        // int int_a = 20;
+        // sprintf(oled_str, "Integer: %d", int_a);
+        // OLED_ShowString(0, 46, (u8 *)oled_str, 16);
+        // OLED_Refresh();
+        
 
-        OLED_ShowString(0, 46, (u8 *)oled_str, 16);
-        OLED_ShowString(0, 0, (u8 *)"hello world", 16);
-        OLED_Refresh();
+        // OLED_ShowString(0, 0, (u8 *)"Hello, TI!", 16);
+        // OLED_Refresh();
+        delay_ms(500);
+        DL_GPIO_clearPins(LED_PORT, LED_LED0_PIN);
+        DL_GPIO_clearPins(LED_PORT, LED_LED1_PIN);
+        delay_ms(500);
+        DL_GPIO_setPins(LED_PORT, LED_LED0_PIN);
+        DL_GPIO_setPins(LED_PORT, LED_LED1_PIN);
+        UART_send_string(PRINT_INST, "hello, ti!\n");
     }
 }

@@ -31,28 +31,17 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "stdio.h"
 #include "User/Bsp/Delay.h"
-#include "User/Bsp/oled.h"
+#include "User/Bsp/Serial.h"
 
 int main(void)
 {
     SYSCFG_DL_init();
-
-    OLED_Init();
-    OLED_ColorTurn(0);
-    OLED_DisplayTurn(0);
-    OLED_Clear();
+    NVIC_EnableIRQ(PRINT_INST_INT_IRQN);
 
     while (1)
     {
-        char oled_str[50];
-        int int_a = 20;
-        sprintf(oled_str, "Interger:%d", int_a);
-        OLED_Refresh();
-
-        OLED_ShowString(0, 46, (u8 *)oled_str, 16);
-        OLED_ShowString(0, 0, (u8 *)"hello world", 16);
-        OLED_Refresh();
+        Delay_ms(1000);
+        UART_send_string(PRINT_INST, "hello, ti!\n");
     }
 }
