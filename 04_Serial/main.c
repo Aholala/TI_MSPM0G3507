@@ -42,6 +42,6 @@ int main(void)
     while (1)
     {
         Delay_ms(1000);
-        UART_send_string(PRINT_INST, "hello, ti!\n");
+        UART_send_string(PRINT_INST, "hello ti!\r\n");
     }
 }
