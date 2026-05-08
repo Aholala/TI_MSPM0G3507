@@ -73,16 +73,27 @@
             }
         },
         {
-            "name": "06_uart",
+            "name": "05_KEY_ADC",
             "type": "ccs-debug",
             "request": "launch",
             "projectInfo": {
-                "name": "06_uart",
-                "resourceId": "/06_uart"
+                "name": "05_KEY_ADC",
+                "resourceId": "/05_KEY_ADC"
             },
             "connections": [
                 {
                     "name": "Texas Instruments XDS110 USB Debug Probe",
+                    "cores": [
+                        {
+                            "name": "CORTEX_M0P",
+                            "debuggerSettings": {
+                                "data": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n<PropertyValues/>\n"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "SEGGER J-Link Emulator_0",
                     "cores": [
                         {
                             "name": "CORTEX_M0P",
