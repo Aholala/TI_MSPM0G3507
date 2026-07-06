@@ -1,9 +1,13 @@
-/// @file       Delay.c
-/// @brief      提供微秒、毫秒和秒级的延时函数
-/// @author     Ahola
-/// @date       2026-05-02
-/// @version    1.0
-
+/**
+ * @file Delay.c
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief
+ * @version 1.0
+ * @date 2026-05-02
+ *
+ * @copyright Copyright (c) 2026
+ *
+ */
 #include "Delay.h"
 /**
  * @brief  微秒级延时

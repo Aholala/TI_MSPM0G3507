@@ -1,8 +1,13 @@
-/// @file       Delay.h
-/// @brief      提供微秒、毫秒和秒级的延时函数
-/// @author     Ahola
-/// @date       2026-05-02
-/// @version    1.0
+/**
+ * @file Delay.h
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief
+ * @version 1.0
+ * @date 2026-05-02
+ *
+ * @copyright Copyright (c) 2026
+ *
+ */
 
 #ifndef __DELAY_H
 #define __DELAY_H
@@ -14,4 +19,4 @@ void Delay_us(uint32_t xus);
 void Delay_ms(uint32_t xms);
 void Delay_s(uint32_t xs);
 
-#endif /* __DELAY_H */
+#endif
