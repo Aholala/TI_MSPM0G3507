@@ -29,6 +29,7 @@
 /* USER CODE BEGIN Includes */
 #include "app_chassis.h"
 #include "app_line_follow.h"
+#include "app_race_config.h"
 
 /* USER CODE END Includes */
 
@@ -103,6 +104,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   AppChassis_Init();
   AppLineFollow_Init();
+  AppRaceConfig_Init(HAL_GetTick());
 
   /* USER CODE END 2 */
 

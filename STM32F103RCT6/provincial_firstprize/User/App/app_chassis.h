@@ -35,9 +35,15 @@ typedef struct
     int16_t right_encoder_delta;
     int32_t left_encoder_total;
     int32_t right_encoder_total;
+    int32_t left_encoder_mrev;
+    int32_t right_encoder_mrev;
+    int32_t left_encoder_mm;
+    int32_t right_encoder_mm;
     int16_t left_control_output;
     int16_t right_control_output;
 } AppChassis_Snapshot;
+
+extern AppChassis_Snapshot g_debug_chassis_snapshot;
 
 void AppChassis_Init(void);
 void AppChassis_UpdateEncoder(void);

@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#include "board_config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,6 +31,11 @@ void BspEncoder_Init(void);
 void BspEncoder_Reset(BspEncoder_Id encoder_id);
 int16_t BspEncoder_ReadDelta(BspEncoder_Id encoder_id);
 int32_t BspEncoder_GetTotal(BspEncoder_Id encoder_id);
+uint16_t BspEncoder_GetPulsesPerRevolution(void);
+int32_t BspEncoder_PulsesToMilliRevolutions(int32_t pulses);
+int32_t BspEncoder_PulsesToMillimeters(int32_t pulses);
+int32_t BspEncoder_GetTotalMilliRevolutions(BspEncoder_Id encoder_id);
+int32_t BspEncoder_GetTotalMillimeters(BspEncoder_Id encoder_id);
 
 #ifdef __cplusplus
 }

@@ -48,6 +48,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/App/app_chassis.c
     User/App/app_icm45686.c
     User/App/app_line_follow.c
+    User/App/app_race_config.c
     User/App/icm45686_port.c
     User/App/task/chassis_task.c
     User/App/task/control_task.c
@@ -56,6 +57,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/Bsp/bsp_encoder.c
     User/Bsp/bsp_buzzer.c
     User/Bsp/bsp_key.c
+    User/Bsp/bsp_led.c
     User/Bsp/bsp_icm45686.c
     User/Bsp/bsp_line_sensor.c
     User/Bsp/bsp_oled.c
@@ -68,6 +70,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/Module/module_buzzer.c
     User/Module/module_icm45686.c
     User/Module/module_key.c
+    User/Module/module_led.c
     User/Module/module_motor.c
     User/Module/module_pid.c
     User/Module/module_tracker.c

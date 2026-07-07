@@ -1,3 +1,14 @@
+/**
+ * @file module_icm45686.h
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief 
+ * @version 1.0
+ * @date 2026-07-07
+ * 
+ * @copyright Copyright (c) 2026
+ * 
+ */
+
 #ifndef __ICM45686_MODULE_H
 #define __ICM45686_MODULE_H
 

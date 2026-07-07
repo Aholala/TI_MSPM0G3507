@@ -1,5 +1,5 @@
 /**
- * @file module_buzzer.h
+ * @file module_led.h
  * @author Ahola邱泽钦 (aholace0328@gmail.com)
  * @brief 
  * @version 1.0
@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef MODULE_BUZZER_H
-#define MODULE_BUZZER_H
+#ifndef MODULE_LED_H
+#define MODULE_LED_H
 
 #include <stdint.h>
 
@@ -23,26 +23,26 @@ typedef struct
     void (*write_level)(void *user_ctx, uint8_t level);
     uint8_t (*read_level)(void *user_ctx);
     void *user_ctx;
-} Buzzer_Ops;
+} Led_Ops;
 
 typedef struct
 {
     uint8_t active_low;
-} Buzzer_Config;
+} Led_Config;
 
 typedef struct
 {
-    Buzzer_Ops ops;
-    Buzzer_Config cfg;
+    Led_Ops ops;
+    Led_Config cfg;
     uint8_t enabled;
-} Buzzer;
+} Led;
 
-void Buzzer_Init(Buzzer *buzzer, const Buzzer_Ops *ops, const Buzzer_Config *cfg);
-void Buzzer_Set(Buzzer *buzzer, uint8_t enabled);
-void Buzzer_On(Buzzer *buzzer);
-void Buzzer_Off(Buzzer *buzzer);
-void Buzzer_Toggle(Buzzer *buzzer);
-uint8_t Buzzer_IsOn(const Buzzer *buzzer);
+void Led_Init(Led *led, const Led_Ops *ops, const Led_Config *cfg);
+void Led_Set(Led *led, uint8_t enabled);
+void Led_On(Led *led);
+void Led_Off(Led *led);
+void Led_Toggle(Led *led);
+uint8_t Led_IsOn(const Led *led);
 
 #ifdef __cplusplus
 }

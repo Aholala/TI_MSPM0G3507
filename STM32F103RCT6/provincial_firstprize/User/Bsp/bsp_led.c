@@ -1,5 +1,5 @@
 /**
- * @file bsp_buzzer.c
+ * @file bsp_led.c
  * @author Ahola邱泽钦 (aholace0328@gmail.com)
  * @brief 
  * @version 1.0
@@ -9,7 +9,7 @@
  * 
  */
 
-#include "bsp_buzzer.h"
+#include "bsp_led.h"
 
 #include <stddef.h>
 
@@ -17,17 +17,17 @@ static void write_level(void *user_ctx, uint8_t level)
 {
     (void)user_ctx;
 
-    BspBuzzer_WriteLevel(level);
+    BspLed_WriteLevel(level);
 }
 
 static uint8_t read_level(void *user_ctx)
 {
     (void)user_ctx;
 
-    return BspBuzzer_ReadLevel();
+    return BspLed_ReadLevel();
 }
 
-void BspBuzzer_Bind(Buzzer_Ops *ops)
+void BspLed_Bind(Led_Ops *ops)
 {
     if (ops == NULL)
     {
@@ -39,24 +39,24 @@ void BspBuzzer_Bind(Buzzer_Ops *ops)
     ops->user_ctx = NULL;
 }
 
-void BspBuzzer_GetDefaultConfig(Buzzer_Config *cfg)
+void BspLed_GetDefaultConfig(Led_Config *cfg)
 {
     if (cfg == NULL)
     {
         return;
     }
 
-    cfg->active_low = BSP_BUZZER_DEFAULT_ACTIVE_LOW;
+    cfg->active_low = BSP_LED_DEFAULT_ACTIVE_LOW;
 }
 
-void BspBuzzer_WriteLevel(uint8_t level)
+void BspLed_WriteLevel(uint8_t level)
 {
-    HAL_GPIO_WritePin(BOARD_BUZZER_GPIO_PORT,
-                      BOARD_BUZZER_GPIO_PIN,
+    HAL_GPIO_WritePin(BOARD_LED_GPIO_PORT,
+                      BOARD_LED_GPIO_PIN,
                       (level != 0u) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
-uint8_t BspBuzzer_ReadLevel(void)
+uint8_t BspLed_ReadLevel(void)
 {
-    return (HAL_GPIO_ReadPin(BOARD_BUZZER_GPIO_PORT, BOARD_BUZZER_GPIO_PIN) == GPIO_PIN_SET) ? 1u : 0u;
+    return (HAL_GPIO_ReadPin(BOARD_LED_GPIO_PORT, BOARD_LED_GPIO_PIN) == GPIO_PIN_SET) ? 1u : 0u;
 }

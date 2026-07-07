@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 #include "chassis_task.h"
 #include "control_task.h"
+#include "app_race_config.h"
 #include "line_follow_task.h"
 
 /* USER CODE END Includes */
@@ -162,11 +163,15 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
+  uint32_t wake_tick = osKernelGetTickCount();
+
   (void)argument;
 
   for(;;)
   {
-    osDelay(1000);
+    AppRaceConfig_RunOnce(wake_tick);
+    wake_tick += APP_RACE_CONFIG_PERIOD_MS;
+    osDelayUntil(wake_tick);
   }
   /* USER CODE END StartDefaultTask */
 }

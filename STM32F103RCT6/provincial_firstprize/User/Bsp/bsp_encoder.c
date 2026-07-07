@@ -26,13 +26,13 @@ static BspEncoder encoders[BSP_ENCODER_COUNT] = {
         &htim4,
         0,
         0,
-        0u,
+        BOARD_ENCODER_LEFT_INVERTED,
     },
     {
         &htim8,
         0,
         0,
-        0u,
+        BOARD_ENCODER_RIGHT_INVERTED,
     },
 };
 
@@ -103,4 +103,66 @@ int32_t BspEncoder_GetTotal(BspEncoder_Id encoder_id)
     BspEncoder *encoder = get_encoder(encoder_id);
 
     return (encoder != 0) ? encoder->total_count : 0;
+}
+
+uint16_t BspEncoder_GetPulsesPerRevolution(void)
+{
+    return BOARD_ENCODER_OUTPUT_PULSES_PER_REV;
+}
+
+int32_t BspEncoder_PulsesToMilliRevolutions(int32_t pulses)
+{
+    int32_t scaled;
+
+    if (BOARD_ENCODER_OUTPUT_PULSES_PER_REV == 0u)
+    {
+        return 0;
+    }
+
+    scaled = pulses * 1000;
+    if (scaled >= 0)
+    {
+        scaled += (int32_t)(BOARD_ENCODER_OUTPUT_PULSES_PER_REV / 2u);
+    }
+    else
+    {
+        scaled -= (int32_t)(BOARD_ENCODER_OUTPUT_PULSES_PER_REV / 2u);
+    }
+
+    return scaled / (int32_t)BOARD_ENCODER_OUTPUT_PULSES_PER_REV;
+}
+
+int32_t BspEncoder_PulsesToMillimeters(int32_t pulses)
+{
+    int64_t distance_um;
+    int64_t divisor;
+
+    if (BOARD_ENCODER_OUTPUT_PULSES_PER_REV == 0u)
+    {
+        return 0;
+    }
+
+    distance_um = (int64_t)pulses * (int64_t)BOARD_WHEEL_CIRCUMFERENCE_UM;
+    divisor = (int64_t)BOARD_ENCODER_OUTPUT_PULSES_PER_REV * 1000;
+
+    if (distance_um >= 0)
+    {
+        distance_um += divisor / 2;
+    }
+    else
+    {
+        distance_um -= divisor / 2;
+    }
+
+    return (int32_t)(distance_um / divisor);
+}
+
+int32_t BspEncoder_GetTotalMilliRevolutions(BspEncoder_Id encoder_id)
+{
+    return BspEncoder_PulsesToMilliRevolutions(BspEncoder_GetTotal(encoder_id));
+}
+
+int32_t BspEncoder_GetTotalMillimeters(BspEncoder_Id encoder_id)
+{
+    return BspEncoder_PulsesToMillimeters(BspEncoder_GetTotal(encoder_id));
 }

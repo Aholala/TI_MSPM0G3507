@@ -16,6 +16,7 @@
 
 static LineTracker g_line_tracker;
 static AppLineFollow_Snapshot g_line_follow_snapshot;
+AppLineFollow_Snapshot g_debug_line_follow_snapshot;
 
 static uint32_t enter_snapshot_lock(void)
 {
@@ -43,6 +44,7 @@ static void update_snapshot(void)
     g_line_follow_snapshot.position = LineTracker_GetPosition(&g_line_tracker);
     g_line_follow_snapshot.error = LineTracker_GetError(&g_line_tracker);
     g_line_follow_snapshot.status = LineTracker_GetStatus(&g_line_tracker);
+    g_debug_line_follow_snapshot = g_line_follow_snapshot;
 
     leave_snapshot_lock(primask);
 }

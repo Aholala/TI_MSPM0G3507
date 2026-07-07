@@ -1,6 +1,12 @@
 /**
  * @file module_key.c
- * @brief Non-blocking key debounce module.
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief 
+ * @version 1.0
+ * @date 2026-07-07
+ * 
+ * @copyright Copyright (c) 2026
+ * 
  */
 
 #include "module_key.h"

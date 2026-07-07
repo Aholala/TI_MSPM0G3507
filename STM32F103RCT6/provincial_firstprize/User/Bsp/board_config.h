@@ -1,6 +1,12 @@
 /**
  * @file board_config.h
- * @brief Board-level pin and polarity mapping.
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief
+ * @version 1.0
+ * @date 2026-07-07
+ *
+ * @copyright Copyright (c) 2026
+ *
  */
 
 #ifndef BOARD_CONFIG_H
@@ -29,8 +35,13 @@ extern "C" {
 #define BOARD_BUZZER_GPIO_PIN              GPIO_PIN_5
 #define BOARD_BUZZER_DEFAULT_ACTIVE_LOW    0u
 
+/* LED */
+#define BOARD_LED_GPIO_PORT                GPIOC
+#define BOARD_LED_GPIO_PIN                 GPIO_PIN_4
+#define BOARD_LED_DEFAULT_ACTIVE_LOW       0u
+
 /* Line sensors */
-#define BOARD_LINE_SENSOR_DEFAULT_ACTIVE_LOW 1u
+#define BOARD_LINE_SENSOR_DEFAULT_ACTIVE_LOW 0u
 #define BOARD_LINE_SENSOR_0_GPIO_PORT      GPIOC
 #define BOARD_LINE_SENSOR_0_GPIO_PIN       GPIO_PIN_0
 #define BOARD_LINE_SENSOR_1_GPIO_PORT      GPIOC
@@ -62,6 +73,36 @@ extern "C" {
 #define BOARD_TB6612_RIGHT_IN2_GPIO_PORT   GPIOB
 #define BOARD_TB6612_RIGHT_IN2_GPIO_PIN    GPIO_PIN_1
 #define BOARD_TB6612_RIGHT_PWM_CHANNEL     TIM_CHANNEL_2
+
+/*
+ * Encoder
+ * Measured at gearbox output shaft. If one physical output revolution reads
+ * 1456 counts in software, change this value from 364u to 1456u.
+ */
+#define BOARD_ENCODER_OUTPUT_PULSES_PER_REV 364u
+#define BOARD_ENCODER_LEFT_INVERTED         0u
+#define BOARD_ENCODER_RIGHT_INVERTED        0u
+
+/* Wheel */
+#define BOARD_WHEEL_DIAMETER_MM             65u
+#define BOARD_WHEEL_CIRCUMFERENCE_UM        ((BOARD_WHEEL_DIAMETER_MM * 31416u) / 10u)
+
+/* Chassis line-follow default speed, in encoder pulses per control period. */
+#define BOARD_CONTROL_TASK_PERIOD_MS        10u
+#define BOARD_CHASSIS_DEFAULT_SPEED_RPM     300u
+#define BOARD_CHASSIS_DEFAULT_SPEED_DELTA   \
+    ((BOARD_ENCODER_OUTPUT_PULSES_PER_REV * BOARD_CHASSIS_DEFAULT_SPEED_RPM * \
+      BOARD_CONTROL_TASK_PERIOD_MS) / 60000u)
+
+/* Speed PID. Target and feedback are encoder pulses per control period. */
+#define BOARD_CHASSIS_SPEED_PID_KP          30
+#define BOARD_CHASSIS_SPEED_PID_KI          2
+#define BOARD_CHASSIS_SPEED_PID_KD          0
+#define BOARD_CHASSIS_SPEED_PID_SCALE       1
+#define BOARD_CHASSIS_SPEED_PID_INTEGRAL_MIN (-300)
+#define BOARD_CHASSIS_SPEED_PID_INTEGRAL_MAX 300
+#define BOARD_CHASSIS_SPEED_PID_OUTPUT_MIN  (-APP_CHASSIS_MAX_SPEED)
+#define BOARD_CHASSIS_SPEED_PID_OUTPUT_MAX  APP_CHASSIS_MAX_SPEED
 
 #ifdef __cplusplus
 }

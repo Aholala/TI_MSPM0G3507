@@ -13,6 +13,7 @@
 
 #include "bsp_encoder.h"
 #include "bsp_tb6612.h"
+#include "board_config.h"
 #include "module_motor.h"
 #include "main.h"
 #include "module_pid.h"
@@ -22,6 +23,7 @@ static DcMotor g_right_motor;
 PidController g_app_chassis_left_speed_pid;
 PidController g_app_chassis_right_speed_pid;
 static AppChassis_Snapshot g_chassis_snapshot;
+AppChassis_Snapshot g_debug_chassis_snapshot;
 static int16_t g_left_encoder_delta;
 static int16_t g_right_encoder_delta;
 static int16_t g_left_target_speed;
@@ -73,8 +75,13 @@ static void update_snapshot(void)
     g_chassis_snapshot.right_encoder_delta = g_right_encoder_delta;
     g_chassis_snapshot.left_encoder_total = BspEncoder_GetTotal(BSP_ENCODER_LEFT);
     g_chassis_snapshot.right_encoder_total = BspEncoder_GetTotal(BSP_ENCODER_RIGHT);
+    g_chassis_snapshot.left_encoder_mrev = BspEncoder_GetTotalMilliRevolutions(BSP_ENCODER_LEFT);
+    g_chassis_snapshot.right_encoder_mrev = BspEncoder_GetTotalMilliRevolutions(BSP_ENCODER_RIGHT);
+    g_chassis_snapshot.left_encoder_mm = BspEncoder_GetTotalMillimeters(BSP_ENCODER_LEFT);
+    g_chassis_snapshot.right_encoder_mm = BspEncoder_GetTotalMillimeters(BSP_ENCODER_RIGHT);
     g_chassis_snapshot.left_control_output = g_left_control_output;
     g_chassis_snapshot.right_control_output = g_right_control_output;
+    g_debug_chassis_snapshot = g_chassis_snapshot;
 
     leave_snapshot_lock(primask);
 }
@@ -89,13 +96,23 @@ void AppChassis_Init(void)
     DcMotor_Config right_cfg = {
         .inverted = 0u,
     };
+    PidController_Config speed_pid_cfg = {
+        .kp = BOARD_CHASSIS_SPEED_PID_KP,
+        .ki = BOARD_CHASSIS_SPEED_PID_KI,
+        .kd = BOARD_CHASSIS_SPEED_PID_KD,
+        .scale = BOARD_CHASSIS_SPEED_PID_SCALE,
+        .integral_min = BOARD_CHASSIS_SPEED_PID_INTEGRAL_MIN,
+        .integral_max = BOARD_CHASSIS_SPEED_PID_INTEGRAL_MAX,
+        .output_min = BOARD_CHASSIS_SPEED_PID_OUTPUT_MIN,
+        .output_max = BOARD_CHASSIS_SPEED_PID_OUTPUT_MAX,
+    };
 
     BspTb6612_Init();
     BspEncoder_Init();
     BspTb6612_BindMotor(BSP_TB6612_MOTOR_LEFT, &left_ops);
     BspTb6612_BindMotor(BSP_TB6612_MOTOR_RIGHT, &right_ops);
-    PidController_Init(&g_app_chassis_left_speed_pid, NULL);
-    PidController_Init(&g_app_chassis_right_speed_pid, NULL);
+    PidController_Init(&g_app_chassis_left_speed_pid, &speed_pid_cfg);
+    PidController_Init(&g_app_chassis_right_speed_pid, &speed_pid_cfg);
 
     DcMotor_Init(&g_left_motor, &left_ops, &left_cfg);
     DcMotor_Init(&g_right_motor, &right_ops, &right_cfg);

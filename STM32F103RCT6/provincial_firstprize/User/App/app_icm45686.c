@@ -1,3 +1,14 @@
+/**
+ * @file app_icm45686.c
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief 
+ * @version 1.0
+ * @date 2026-07-07
+ * 
+ * @copyright Copyright (c) 2026
+ * 
+ */
+
 #include "app_icm45686.h"
 
 #include "main.h"
@@ -6,6 +17,8 @@ static icm45686_module_t s_icm45686;
 static imu_attitude_estimator_t s_attitude;
 static imu_solution_t s_solution;
 static app_icm45686_snapshot_t s_snapshot;
+app_icm45686_snapshot_t g_debug_icm45686_snapshot;
+imu_attitude_estimator_t g_debug_attitude_estimator;
 
 static uint32_t enter_snapshot_lock(void)
 {
@@ -32,6 +45,8 @@ static void update_snapshot(int process_status)
 	s_snapshot.last_process_status = process_status;
 	if (process_status == 0)
 		++s_snapshot.update_count;
+	g_debug_icm45686_snapshot = s_snapshot;
+	g_debug_attitude_estimator = s_attitude;
 
 	leave_snapshot_lock(primask);
 }

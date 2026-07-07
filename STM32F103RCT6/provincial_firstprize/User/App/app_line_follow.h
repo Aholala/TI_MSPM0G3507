@@ -31,6 +31,8 @@ typedef struct
     LineTracker_Status status;
 } AppLineFollow_Snapshot;
 
+extern AppLineFollow_Snapshot g_debug_line_follow_snapshot;
+
 void AppLineFollow_Init(void);
 LineTracker_Status AppLineFollow_RunOnce(void);
 
