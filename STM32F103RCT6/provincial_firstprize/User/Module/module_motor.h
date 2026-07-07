@@ -1,3 +1,14 @@
+/**
+ * @file module_motor.h
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief 
+ * @version 1.0
+ * @date 2026-07-06
+ * 
+ * @copyright Copyright (c) 2026
+ * 
+ */
+
 #ifndef DC_MOTOR_H
 #define DC_MOTOR_H
 

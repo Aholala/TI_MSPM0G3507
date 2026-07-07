@@ -85,6 +85,11 @@ void StartDefaultTask(void *argument);
 
 /* USER CODE END FunctionPrototypes */
 
+void StartDefaultTask(void *argument);
+void StartlinefollowTask(void *argument);
+void StartchassisTask(void *argument);
+void StartcontrolTask(void *argument);
+
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
@@ -162,7 +167,16 @@ void StartDefaultTask(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartlinefollowTask */
-/* Task entry is implemented in User/App/LineFollowTask/line_follow_task.c. */
+__weak void StartlinefollowTask(void *argument)
+{
+  /* USER CODE BEGIN StartlinefollowTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartlinefollowTask */
+}
 
 /* USER CODE BEGIN Header_StartchassisTask */
 /**
@@ -171,7 +185,16 @@ void StartDefaultTask(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartchassisTask */
-/* Task entry is implemented in User/App/ChassisTask/chassis_task.c. */
+__weak void StartchassisTask(void *argument)
+{
+  /* USER CODE BEGIN StartchassisTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartchassisTask */
+}
 
 /* USER CODE BEGIN Header_StartcontrolTask */
 /**
@@ -180,7 +203,16 @@ void StartDefaultTask(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartcontrolTask */
-/* Task entry is implemented in User/App/ControlTask/control_task.c. */
+__weak void StartcontrolTask(void *argument)
+{
+  /* USER CODE BEGIN StartcontrolTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartcontrolTask */
+}
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */

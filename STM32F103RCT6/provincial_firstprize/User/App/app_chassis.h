@@ -1,3 +1,14 @@
+/**
+ * @file app_chassis.h
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief 
+ * @version 1.0
+ * @date 2026-07-06
+ * 
+ * @copyright Copyright (c) 2026
+ * 
+ */
+
 #ifndef APP_CHASSIS_H
 #define APP_CHASSIS_H
 

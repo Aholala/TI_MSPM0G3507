@@ -1,3 +1,14 @@
+/**
+ * @file control_task.h
+ * @author Ahola邱泽钦 (aholace0328@gmail.com)
+ * @brief 
+ * @version 1.0
+ * @date 2026-07-06
+ * 
+ * @copyright Copyright (c) 2026
+ * 
+ */
+
 #ifndef CONTROL_TASK_H
 #define CONTROL_TASK_H
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+﻿cmake_minimum_required(VERSION 3.22)
 
 #
 # This file is generated only once,
@@ -52,6 +52,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/App/task/line_follow_task.c
     User/Bsp/bsp_encoder.c
     User/Bsp/bsp_line_sensor.c
+    User/Bsp/bsp_oled.c
+    User/Bsp/bsp_oled_data.c
     User/Bsp/bsp_tb6612.c
     User/Module/module_motor.c
     User/Module/module_pid.c

@@ -57,6 +57,11 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define ICM45686_INT1_Pin GPIO_PIN_15
+#define ICM45686_INT1_GPIO_Port GPIOC
+#define ICM45686_INT1_EXTI_IRQn EXTI15_10_IRQn
+#define SPI2_CS_Pin GPIO_PIN_12
+#define SPI2_CS_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
