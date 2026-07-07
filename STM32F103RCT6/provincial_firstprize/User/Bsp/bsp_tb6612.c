@@ -13,8 +13,6 @@
 
 #include "tim.h"
 
-#define TB6612_PWM_MAX_DUTY 1000u
-
 typedef struct
 {
     GPIO_TypeDef *in1_port;
@@ -26,18 +24,18 @@ typedef struct
 
 static const BspTb6612_MotorHw motor_hw[BSP_TB6612_MOTOR_COUNT] = {
     {
-        GPIOA,
-        GPIO_PIN_5,
-        GPIOA,
-        GPIO_PIN_4,
-        TIM_CHANNEL_1,
+        BOARD_TB6612_LEFT_IN1_GPIO_PORT,
+        BOARD_TB6612_LEFT_IN1_GPIO_PIN,
+        BOARD_TB6612_LEFT_IN2_GPIO_PORT,
+        BOARD_TB6612_LEFT_IN2_GPIO_PIN,
+        BOARD_TB6612_LEFT_PWM_CHANNEL,
     },
     {
-        GPIOB,
-        GPIO_PIN_0,
-        GPIOB,
-        GPIO_PIN_1,
-        TIM_CHANNEL_2,
+        BOARD_TB6612_RIGHT_IN1_GPIO_PORT,
+        BOARD_TB6612_RIGHT_IN1_GPIO_PIN,
+        BOARD_TB6612_RIGHT_IN2_GPIO_PORT,
+        BOARD_TB6612_RIGHT_IN2_GPIO_PIN,
+        BOARD_TB6612_RIGHT_PWM_CHANNEL,
     },
 };
 
@@ -97,20 +95,20 @@ static void set_duty(void *user_ctx, uint16_t duty)
         return;
     }
 
-    if (duty > TB6612_PWM_MAX_DUTY)
+    if (duty > BOARD_TB6612_PWM_MAX_DUTY)
     {
-        duty = TB6612_PWM_MAX_DUTY;
+        duty = BOARD_TB6612_PWM_MAX_DUTY;
     }
 
     period = __HAL_TIM_GET_AUTORELOAD(&htim3) + 1u;
-    compare = (period * duty) / TB6612_PWM_MAX_DUTY;
+    compare = (period * duty) / BOARD_TB6612_PWM_MAX_DUTY;
     __HAL_TIM_SET_COMPARE(&htim3, hw->channel, compare);
 }
 
 void BspTb6612_Init(void)
 {
-    (void)HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-    (void)HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+    (void)HAL_TIM_PWM_Start(&htim3, BOARD_TB6612_LEFT_PWM_CHANNEL);
+    (void)HAL_TIM_PWM_Start(&htim3, BOARD_TB6612_RIGHT_PWM_CHANNEL);
     set_duty((void *)&motor_hw[BSP_TB6612_MOTOR_LEFT], 0u);
     set_duty((void *)&motor_hw[BSP_TB6612_MOTOR_RIGHT], 0u);
 

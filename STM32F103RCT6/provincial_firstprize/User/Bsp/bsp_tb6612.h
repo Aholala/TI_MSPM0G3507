@@ -12,8 +12,8 @@
 #ifndef BSP_TB6612_H
 #define BSP_TB6612_H
 
+#include "board_config.h"
 #include "module_motor.h"
-#include "main.h"
 
 #ifdef __cplusplus
 extern "C" {

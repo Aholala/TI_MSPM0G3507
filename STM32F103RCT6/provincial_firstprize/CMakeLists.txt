@@ -54,6 +54,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/App/task/imu_task.c
     User/App/task/line_follow_task.c
     User/Bsp/bsp_encoder.c
+    User/Bsp/bsp_buzzer.c
+    User/Bsp/bsp_key.c
     User/Bsp/bsp_icm45686.c
     User/Bsp/bsp_line_sensor.c
     User/Bsp/bsp_oled.c
@@ -63,7 +65,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/Lib/lib_kalman.c
     User/Module/inv_imu_driver.c
     User/Module/inv_imu_transport.c
+    User/Module/module_buzzer.c
     User/Module/module_icm45686.c
+    User/Module/module_key.c
     User/Module/module_motor.c
     User/Module/module_pid.c
     User/Module/module_tracker.c

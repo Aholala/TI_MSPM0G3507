@@ -1,0 +1,70 @@
+/**
+ * @file board_config.h
+ * @brief Board-level pin and polarity mapping.
+ */
+
+#ifndef BOARD_CONFIG_H
+#define BOARD_CONFIG_H
+
+#include "main.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Keys: one side connects to GPIO, the other side connects to GND. */
+#define BOARD_KEY_DEFAULT_ACTIVE_LOW       1u
+#define BOARD_KEY_DEFAULT_DEBOUNCE_MS      20u
+#define BOARD_KEY_DEFAULT_LONG_PRESS_MS    1000u
+
+#define BOARD_KEY_PA8_GPIO_PORT            GPIOA
+#define BOARD_KEY_PA8_GPIO_PIN             GPIO_PIN_8
+#define BOARD_KEY_PC13_GPIO_PORT           GPIOC
+#define BOARD_KEY_PC13_GPIO_PIN            GPIO_PIN_13
+#define BOARD_KEY_PC14_GPIO_PORT           GPIOC
+#define BOARD_KEY_PC14_GPIO_PIN            GPIO_PIN_14
+
+/* Buzzer */
+#define BOARD_BUZZER_GPIO_PORT             GPIOB
+#define BOARD_BUZZER_GPIO_PIN              GPIO_PIN_5
+#define BOARD_BUZZER_DEFAULT_ACTIVE_LOW    0u
+
+/* Line sensors */
+#define BOARD_LINE_SENSOR_DEFAULT_ACTIVE_LOW 1u
+#define BOARD_LINE_SENSOR_0_GPIO_PORT      GPIOC
+#define BOARD_LINE_SENSOR_0_GPIO_PIN       GPIO_PIN_0
+#define BOARD_LINE_SENSOR_1_GPIO_PORT      GPIOC
+#define BOARD_LINE_SENSOR_1_GPIO_PIN       GPIO_PIN_1
+#define BOARD_LINE_SENSOR_2_GPIO_PORT      GPIOC
+#define BOARD_LINE_SENSOR_2_GPIO_PIN       GPIO_PIN_2
+#define BOARD_LINE_SENSOR_3_GPIO_PORT      GPIOC
+#define BOARD_LINE_SENSOR_3_GPIO_PIN       GPIO_PIN_3
+#define BOARD_LINE_SENSOR_4_GPIO_PORT      GPIOC
+#define BOARD_LINE_SENSOR_4_GPIO_PIN       GPIO_PIN_5
+#define BOARD_LINE_SENSOR_5_GPIO_PORT      GPIOC
+#define BOARD_LINE_SENSOR_5_GPIO_PIN       GPIO_PIN_8
+#define BOARD_LINE_SENSOR_6_GPIO_PORT      GPIOC
+#define BOARD_LINE_SENSOR_6_GPIO_PIN       GPIO_PIN_9
+#define BOARD_LINE_SENSOR_7_GPIO_PORT      GPIOC
+#define BOARD_LINE_SENSOR_7_GPIO_PIN       GPIO_PIN_12
+
+/* TB6612 motor driver */
+#define BOARD_TB6612_PWM_MAX_DUTY          1000u
+
+#define BOARD_TB6612_LEFT_IN1_GPIO_PORT    GPIOA
+#define BOARD_TB6612_LEFT_IN1_GPIO_PIN     GPIO_PIN_5
+#define BOARD_TB6612_LEFT_IN2_GPIO_PORT    GPIOA
+#define BOARD_TB6612_LEFT_IN2_GPIO_PIN     GPIO_PIN_4
+#define BOARD_TB6612_LEFT_PWM_CHANNEL      TIM_CHANNEL_1
+
+#define BOARD_TB6612_RIGHT_IN1_GPIO_PORT   GPIOB
+#define BOARD_TB6612_RIGHT_IN1_GPIO_PIN    GPIO_PIN_0
+#define BOARD_TB6612_RIGHT_IN2_GPIO_PORT   GPIOB
+#define BOARD_TB6612_RIGHT_IN2_GPIO_PIN    GPIO_PIN_1
+#define BOARD_TB6612_RIGHT_PWM_CHANNEL     TIM_CHANNEL_2
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -13,14 +13,14 @@
 
 #include <stdint.h>
 
-#include "main.h"
+#include "board_config.h"
 #include "module_tracker.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define BSP_LINE_SENSOR_DEFAULT_ACTIVE_LOW 1u
+#define BSP_LINE_SENSOR_DEFAULT_ACTIVE_LOW BOARD_LINE_SENSOR_DEFAULT_ACTIVE_LOW
 
 uint8_t BspLineSensor_ReadRawMask(void *user_ctx);
 void BspLineSensor_Bind(LineTracker_Ops *ops);
