@@ -46,15 +46,24 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     User/App/app_chassis.c
+    User/App/app_icm45686.c
     User/App/app_line_follow.c
+    User/App/icm45686_port.c
     User/App/task/chassis_task.c
     User/App/task/control_task.c
+    User/App/task/imu_task.c
     User/App/task/line_follow_task.c
     User/Bsp/bsp_encoder.c
+    User/Bsp/bsp_icm45686.c
     User/Bsp/bsp_line_sensor.c
     User/Bsp/bsp_oled.c
     User/Bsp/bsp_oled_data.c
     User/Bsp/bsp_tb6612.c
+    User/Lib/lib_attitude.c
+    User/Lib/lib_kalman.c
+    User/Module/inv_imu_driver.c
+    User/Module/inv_imu_transport.c
+    User/Module/module_icm45686.c
     User/Module/module_motor.c
     User/Module/module_pid.c
     User/Module/module_tracker.c
@@ -66,6 +75,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     User/App
     User/App/task
     User/Bsp
+    User/Lib
     User/Module
     User/Module/Motor
     User/Module/Pid

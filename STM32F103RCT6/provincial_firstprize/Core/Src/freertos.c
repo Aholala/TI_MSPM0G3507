@@ -78,6 +78,13 @@ const osThreadAttr_t controlTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for imuTask */
+osThreadId_t imuTaskHandle;
+const osThreadAttr_t imuTask_attributes = {
+  .name = "imuTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -89,6 +96,7 @@ void StartDefaultTask(void *argument);
 void StartlinefollowTask(void *argument);
 void StartchassisTask(void *argument);
 void StartcontrolTask(void *argument);
+void StartimuTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -130,6 +138,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of controlTask */
   controlTaskHandle = osThreadNew(StartcontrolTask, NULL, &controlTask_attributes);
+
+  /* creation of imuTask */
+  imuTaskHandle = osThreadNew(StartimuTask, NULL, &imuTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -212,6 +223,24 @@ __weak void StartcontrolTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartcontrolTask */
+}
+
+/* USER CODE BEGIN Header_StartimuTask */
+/**
+* @brief Function implementing the imuTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartimuTask */
+__weak void StartimuTask(void *argument)
+{
+  /* USER CODE BEGIN StartimuTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartimuTask */
 }
 
 /* Private application code --------------------------------------------------*/

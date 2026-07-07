@@ -1,4 +1,4 @@
-#include "icm45686_bsp.h"
+#include "bsp_icm45686.h"
 
 #include "delay.h"
 #include "spi.h"
