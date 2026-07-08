@@ -1,0 +1,4 @@
+build/
+cmake-debug/
+Debug/
+CMakeUserPresets.json

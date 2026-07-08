@@ -39,3 +39,38 @@ MSPM0 LaunchPad, please visit the [LP-MSPM0G3507 User's Guide](https://www.ti.co
 ## Example Usage
 
 Compile, load and run the example.
+
+## CMake Build
+
+This project can be built outside CCS with CMake, Ninja, TI ARM Clang, MSPM0 SDK,
+and SysConfig.
+
+Default local paths are defined in
+`cmake/toolchains/tiarmclang-mspm0.cmake`:
+
+- `TI_ARM_CLANG_ROOT`: `C:/ti/ccs2050/ccs/tools/compiler/ti-cgt-armllvm_4.0.4.LTS`
+- `MSPM0_SDK_ROOT`: `C:/ti/mspm0_sdk_2_10_00_04`
+- `SYSCONFIG_CLI`: `C:/ti/sysconfig_1.26.2/sysconfig_cli.bat`
+
+Build with:
+
+```powershell
+cmake --preset tiarmclang-debug
+cmake --build --preset tiarmclang-debug
+```
+
+The output files are generated under `cmake-debug`, including
+`model.out`, `model.map`, `model_linkInfo.xml`, and `compile_commands.json`.
+
+To override installed tool paths:
+
+```powershell
+cmake --preset tiarmclang-debug `
+  -DTI_ARM_CLANG_ROOT="C:/path/to/ti-cgt-armllvm" `
+  -DMSPM0_SDK_ROOT="C:/path/to/mspm0_sdk" `
+  -DSYSCONFIG_CLI="C:/path/to/sysconfig_cli.bat"
+cmake --build --preset tiarmclang-debug
+```
+
+Application source files placed under `User/Bsp`, `User/Module`, `User/App`, or
+`User/Lib` are collected automatically by CMake.

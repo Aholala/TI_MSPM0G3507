@@ -1,0 +1,21 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "tiarmclang-debug",
+      "displayName": "TI ARM Clang Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/cmake-debug",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/tiarmclang-mspm0.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "tiarmclang-debug",
+      "configurePreset": "tiarmclang-debug"
+    }
+  ]
+}

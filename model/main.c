@@ -31,13 +31,33 @@
  */
 
 #include "ti_msp_dl_config.h"
-#include "User/Bsp/Delay.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "User/App/app_freertos.h"
 
 int main(void)
 {
     SYSCFG_DL_init();
+    App_FreeRTOS_CreateTasks();
+    vTaskStartScheduler();
 
-    while (1)
-    {
+    for (;;) {
+    }
+}
+
+void vApplicationMallocFailedHook(void)
+{
+    taskDISABLE_INTERRUPTS();
+    for (;;) {
+    }
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t task, char *taskName)
+{
+    (void) task;
+    (void) taskName;
+
+    taskDISABLE_INTERRUPTS();
+    for (;;) {
     }
 }

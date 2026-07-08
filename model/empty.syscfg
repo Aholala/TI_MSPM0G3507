@@ -38,45 +38,28 @@ const pinFunction4     = system.clockTree["HFXT"];
 pinFunction4.inputFreq = 40;
 pinFunction4.enable    = true;
 
-GPIO1.$name = "GPIO_TRACK8";
-GPIO1.associatedPins.create(8);
-GPIO1.associatedPins[0].$name        = "TRACK_1";
-GPIO1.associatedPins[0].direction    = "INPUT";
-GPIO1.associatedPins[0].assignedPort = "PORTC";
-GPIO1.associatedPins[0].assignedPin  = "0";
-GPIO1.associatedPins[1].$name        = "TRACK_2";
-GPIO1.associatedPins[1].direction    = "INPUT";
-GPIO1.associatedPins[1].assignedPort = "PORTC";
-GPIO1.associatedPins[1].assignedPin  = "1";
-GPIO1.associatedPins[2].$name        = "TRACK_3";
-GPIO1.associatedPins[2].direction    = "INPUT";
-GPIO1.associatedPins[2].assignedPort = "PORTC";
-GPIO1.associatedPins[2].assignedPin  = "2";
-GPIO1.associatedPins[3].$name        = "TRACK_4";
-GPIO1.associatedPins[3].direction    = "INPUT";
-GPIO1.associatedPins[3].assignedPort = "PORTC";
-GPIO1.associatedPins[3].assignedPin  = "3";
-GPIO1.associatedPins[4].$name        = "TRACK_5";
-GPIO1.associatedPins[4].direction    = "INPUT";
-GPIO1.associatedPins[4].assignedPort = "PORTC";
-GPIO1.associatedPins[4].assignedPin  = "5";
-GPIO1.associatedPins[5].$name        = "TRACK_6";
-GPIO1.associatedPins[5].direction    = "INPUT";
-GPIO1.associatedPins[5].assignedPort = "PORTC";
-GPIO1.associatedPins[5].assignedPin  = "8";
-GPIO1.associatedPins[6].$name        = "TRACK_7";
-GPIO1.associatedPins[6].direction    = "INPUT";
-GPIO1.associatedPins[6].assignedPort = "PORTC";
-GPIO1.associatedPins[6].assignedPin  = "9";
-GPIO1.associatedPins[7].$name        = "TRACK_8";
-GPIO1.associatedPins[7].direction    = "INPUT";
-GPIO1.associatedPins[7].assignedPort = "PORTC";
-GPIO1.associatedPins[7].assignedPin  = "12";
+GPIO1.$name                              = "KEY";
+GPIO1.associatedPins.create(3);
+GPIO1.associatedPins[0].$name            = "KEY1";
+GPIO1.associatedPins[0].direction        = "INPUT";
+GPIO1.associatedPins[0].internalResistor = "PULL_UP";
+GPIO1.associatedPins[0].assignedPort     = "PORTB";
+GPIO1.associatedPins[0].assignedPin      = "4";
+GPIO1.associatedPins[1].$name            = "KEY2";
+GPIO1.associatedPins[1].direction        = "INPUT";
+GPIO1.associatedPins[1].internalResistor = "PULL_UP";
+GPIO1.associatedPins[1].assignedPort     = "PORTA";
+GPIO1.associatedPins[1].assignedPin      = "14";
+GPIO1.associatedPins[2].$name            = "KEY3";
+GPIO1.associatedPins[2].direction        = "INPUT";
+GPIO1.associatedPins[2].internalResistor = "PULL_UP";
+GPIO1.associatedPins[2].assignedPort     = "PORTA";
+GPIO1.associatedPins[2].assignedPin      = "16";
+
+const Board = scripting.addModule("/ti/driverlib/Board", {}, false);
 
 SYSCTL.forceDefaultClkConfig = true;
 SYSCTL.clockTreeEn           = true;
-
-const Board = scripting.addModule("/ti/driverlib/Board", {}, false);
 
 /**
  * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
@@ -86,6 +69,9 @@ const Board = scripting.addModule("/ti/driverlib/Board", {}, false);
 pinFunction4.peripheral.$suggestSolution           = "SYSCTL";
 pinFunction4.peripheral.hfxInPin.$suggestSolution  = "PA5";
 pinFunction4.peripheral.hfxOutPin.$suggestSolution = "PA6";
+GPIO1.associatedPins[0].pin.$suggestSolution       = "PB4";
+GPIO1.associatedPins[1].pin.$suggestSolution       = "PA14";
+GPIO1.associatedPins[2].pin.$suggestSolution       = "PA16";
 Board.peripheral.$suggestSolution                  = "DEBUGSS";
 Board.peripheral.swclkPin.$suggestSolution         = "PA20";
 Board.peripheral.swdioPin.$suggestSolution         = "PA19";
