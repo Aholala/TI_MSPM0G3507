@@ -29,6 +29,7 @@ typedef enum
     APP_RACE_STATE_IDLE = 0,
     APP_RACE_STATE_READY,
     APP_RACE_STATE_RUNNING,
+    APP_RACE_STATE_STOPPED,
     APP_RACE_STATE_FINISHED
 } AppRace_State;
 
@@ -41,6 +42,7 @@ typedef struct
 } AppRaceConfig_Snapshot;
 
 extern AppRaceConfig_Snapshot g_debug_race_config_snapshot;
+extern volatile uint32_t g_debug_key_timer_count;
 
 void AppRaceConfig_Init(uint32_t now_ms);
 void AppRaceConfig_RunOnce(uint32_t now_ms);
@@ -50,6 +52,7 @@ uint8_t AppRaceConfig_GetTargetLaps(void);
 uint8_t AppRaceConfig_IsRunning(void);
 void AppRaceConfig_SetFinished(void);
 void AppRaceConfig_NotifyPoint(uint32_t now_ms);
+void AppRaceConfig_KeyTimer1ms(uint32_t now_ms);
 
 #ifdef __cplusplus
 }

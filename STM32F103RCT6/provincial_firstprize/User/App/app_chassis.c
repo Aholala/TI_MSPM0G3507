@@ -14,14 +14,16 @@
 #include "bsp_encoder.h"
 #include "bsp_tb6612.h"
 #include "board_config.h"
+#include "lib_rate_filter.h"
 #include "module_motor.h"
 #include "main.h"
-#include "module_pid.h"
 
 static DcMotor g_left_motor;
 static DcMotor g_right_motor;
 PidController g_app_chassis_left_speed_pid;
 PidController g_app_chassis_right_speed_pid;
+static RateFilter g_left_rpm_filter;
+static RateFilter g_right_rpm_filter;
 static AppChassis_Snapshot g_chassis_snapshot;
 AppChassis_Snapshot g_debug_chassis_snapshot;
 static int16_t g_left_encoder_delta;
@@ -30,6 +32,9 @@ static int16_t g_left_target_speed;
 static int16_t g_right_target_speed;
 static int16_t g_left_control_output;
 static int16_t g_right_control_output;
+
+#define APP_CHASSIS_RPM_WINDOW_SAMPLES 5u
+#define APP_CHASSIS_RPM_FILTER_DIV 8u
 
 static int16_t clamp_chassis_speed(int16_t speed)
 {
@@ -71,8 +76,18 @@ static void update_snapshot(void)
     g_chassis_snapshot.right_speed = DcMotor_GetSpeed(&g_right_motor);
     g_chassis_snapshot.left_target_speed = g_left_target_speed;
     g_chassis_snapshot.right_target_speed = g_right_target_speed;
+    g_chassis_snapshot.left_target_rpm =
+        RateFilter_DeltaToRate(&g_left_rpm_filter, g_left_target_speed);
+    g_chassis_snapshot.right_target_rpm =
+        RateFilter_DeltaToRate(&g_right_rpm_filter, g_right_target_speed);
     g_chassis_snapshot.left_encoder_delta = g_left_encoder_delta;
     g_chassis_snapshot.right_encoder_delta = g_right_encoder_delta;
+    g_chassis_snapshot.left_actual_rpm = RateFilter_GetInstantRate(&g_left_rpm_filter);
+    g_chassis_snapshot.right_actual_rpm = RateFilter_GetInstantRate(&g_right_rpm_filter);
+    g_chassis_snapshot.left_actual_rpm_filtered =
+        RateFilter_GetFilteredRate(&g_left_rpm_filter);
+    g_chassis_snapshot.right_actual_rpm_filtered =
+        RateFilter_GetFilteredRate(&g_right_rpm_filter);
     g_chassis_snapshot.left_encoder_total = BspEncoder_GetTotal(BSP_ENCODER_LEFT);
     g_chassis_snapshot.right_encoder_total = BspEncoder_GetTotal(BSP_ENCODER_RIGHT);
     g_chassis_snapshot.left_encoder_mrev = BspEncoder_GetTotalMilliRevolutions(BSP_ENCODER_LEFT);
@@ -94,7 +109,7 @@ void AppChassis_Init(void)
         .inverted = 0u,
     };
     DcMotor_Config right_cfg = {
-        .inverted = 0u,
+        .inverted = 1u,
     };
     PidController_Config speed_pid_cfg = {
         .kp = BOARD_CHASSIS_SPEED_PID_KP,
@@ -106,6 +121,12 @@ void AppChassis_Init(void)
         .output_min = BOARD_CHASSIS_SPEED_PID_OUTPUT_MIN,
         .output_max = BOARD_CHASSIS_SPEED_PID_OUTPUT_MAX,
     };
+    RateFilter_Config rpm_filter_cfg = {
+        .units_per_cycle = BOARD_ENCODER_OUTPUT_PULSES_PER_REV,
+        .sample_period_ms = BOARD_CONTROL_TASK_PERIOD_MS,
+        .window_samples = APP_CHASSIS_RPM_WINDOW_SAMPLES,
+        .filter_div = APP_CHASSIS_RPM_FILTER_DIV,
+    };
 
     BspTb6612_Init();
     BspEncoder_Init();
@@ -113,6 +134,8 @@ void AppChassis_Init(void)
     BspTb6612_BindMotor(BSP_TB6612_MOTOR_RIGHT, &right_ops);
     PidController_Init(&g_app_chassis_left_speed_pid, &speed_pid_cfg);
     PidController_Init(&g_app_chassis_right_speed_pid, &speed_pid_cfg);
+    RateFilter_Init(&g_left_rpm_filter, &rpm_filter_cfg);
+    RateFilter_Init(&g_right_rpm_filter, &rpm_filter_cfg);
 
     DcMotor_Init(&g_left_motor, &left_ops, &left_cfg);
     DcMotor_Init(&g_right_motor, &right_ops, &right_cfg);
@@ -127,6 +150,8 @@ void AppChassis_UpdateEncoder(void)
 {
     g_left_encoder_delta = BspEncoder_ReadDelta(BSP_ENCODER_LEFT);
     g_right_encoder_delta = BspEncoder_ReadDelta(BSP_ENCODER_RIGHT);
+    RateFilter_Update(&g_left_rpm_filter, g_left_encoder_delta);
+    RateFilter_Update(&g_right_rpm_filter, g_right_encoder_delta);
     update_snapshot();
 }
 
@@ -180,6 +205,18 @@ void AppChassis_SpeedControlRun(void)
     left_target = g_left_target_speed;
     right_target = g_right_target_speed;
     leave_snapshot_lock(primask);
+
+    if ((left_target == 0) && (right_target == 0))
+    {
+        PidController_Reset(&g_app_chassis_left_speed_pid);
+        PidController_Reset(&g_app_chassis_right_speed_pid);
+        RateFilter_Reset(&g_left_rpm_filter);
+        RateFilter_Reset(&g_right_rpm_filter);
+        g_left_control_output = 0;
+        g_right_control_output = 0;
+        AppChassis_SetMotorSpeed(0, 0);
+        return;
+    }
 
     g_left_control_output = clamp_chassis_speed((int16_t)PidController_Run(
         &g_app_chassis_left_speed_pid,

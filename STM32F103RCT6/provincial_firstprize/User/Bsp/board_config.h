@@ -80,7 +80,7 @@ extern "C" {
  * 1456 counts in software, change this value from 364u to 1456u.
  */
 #define BOARD_ENCODER_OUTPUT_PULSES_PER_REV 364u
-#define BOARD_ENCODER_LEFT_INVERTED         0u
+#define BOARD_ENCODER_LEFT_INVERTED         1u
 #define BOARD_ENCODER_RIGHT_INVERTED        0u
 
 /* Wheel */
@@ -95,9 +95,9 @@ extern "C" {
       BOARD_CONTROL_TASK_PERIOD_MS) / 60000u)
 
 /* Speed PID. Target and feedback are encoder pulses per control period. */
-#define BOARD_CHASSIS_SPEED_PID_KP          30
-#define BOARD_CHASSIS_SPEED_PID_KI          2
-#define BOARD_CHASSIS_SPEED_PID_KD          0
+#define BOARD_CHASSIS_SPEED_PID_KP          10
+#define BOARD_CHASSIS_SPEED_PID_KI          1
+#define BOARD_CHASSIS_SPEED_PID_KD          2
 #define BOARD_CHASSIS_SPEED_PID_SCALE       1
 #define BOARD_CHASSIS_SPEED_PID_INTEGRAL_MIN (-300)
 #define BOARD_CHASSIS_SPEED_PID_INTEGRAL_MAX 300

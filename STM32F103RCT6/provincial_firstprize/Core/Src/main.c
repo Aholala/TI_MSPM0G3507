@@ -188,6 +188,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM6)
   {
     HAL_IncTick();
+    AppRaceConfig_KeyTimer1ms(HAL_GetTick());
   }
   /* USER CODE BEGIN Callback 1 */
 

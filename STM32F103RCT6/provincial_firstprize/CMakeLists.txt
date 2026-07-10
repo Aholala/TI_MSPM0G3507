@@ -65,6 +65,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/Bsp/bsp_tb6612.c
     User/Lib/lib_attitude.c
     User/Lib/lib_kalman.c
+    User/Lib/lib_pid.c
+    User/Lib/lib_rate_filter.c
     User/Module/inv_imu_driver.c
     User/Module/inv_imu_transport.c
     User/Module/module_buzzer.c
@@ -72,7 +74,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/Module/module_key.c
     User/Module/module_led.c
     User/Module/module_motor.c
-    User/Module/module_pid.c
     User/Module/module_tracker.c
 )
 

@@ -37,7 +37,7 @@ void StartcontrolTask(void *argument)
 
         if (AppRaceConfig_IsRunning() == 0u)
         {
-            AppChassis_SetTargetSpeed(0, 0);
+            AppChassis_Stop();
             wake_tick += CONTROL_TASK_PERIOD_MS;
             osDelayUntil(wake_tick);
             continue;

@@ -32,10 +32,13 @@ typedef enum
 } AppRace_KeyId;
 
 static Key g_keys[APP_RACE_KEY_COUNT];
+static volatile uint8_t g_key_press_count[APP_RACE_KEY_COUNT];
+static volatile uint8_t g_key_timer_ready;
 static Buzzer g_buzzer;
 static Led g_led;
 static AppRaceConfig_Snapshot g_snapshot;
 AppRaceConfig_Snapshot g_debug_race_config_snapshot;
+volatile uint32_t g_debug_key_timer_count;
 static uint32_t g_notify_off_time_ms;
 static uint32_t g_last_oled_time_ms;
 static uint8_t g_display_dirty;
@@ -81,6 +84,8 @@ static void set_mode(uint8_t mode)
 
     g_snapshot.mode = mode;
     g_snapshot.target_laps = default_laps_for_mode(mode);
+    g_snapshot.current_lap = 0u;
+    g_snapshot.state = APP_RACE_STATE_READY;
     g_display_dirty = 1u;
 }
 
@@ -97,6 +102,8 @@ static void next_lap(void)
         g_snapshot.target_laps = APP_RACE_CONFIG_MIN_LAPS;
     }
 
+    g_snapshot.current_lap = 0u;
+    g_snapshot.state = APP_RACE_STATE_READY;
     g_display_dirty = 1u;
 }
 
@@ -104,12 +111,17 @@ static void toggle_start_stop(void)
 {
     if (g_snapshot.state == APP_RACE_STATE_RUNNING)
     {
-        g_snapshot.state = APP_RACE_STATE_READY;
+        g_snapshot.state = APP_RACE_STATE_STOPPED;
     }
     else
     {
+        if ((g_snapshot.state == APP_RACE_STATE_READY) ||
+            (g_snapshot.state == APP_RACE_STATE_FINISHED))
+        {
+            g_snapshot.current_lap = 0u;
+        }
+
         g_snapshot.state = APP_RACE_STATE_RUNNING;
-        g_snapshot.current_lap = 0u;
     }
 
     g_display_dirty = 1u;
@@ -123,6 +135,8 @@ static const char *state_text(AppRace_State state)
         return "READY";
     case APP_RACE_STATE_RUNNING:
         return "RUN";
+    case APP_RACE_STATE_STOPPED:
+        return "STOP";
     case APP_RACE_STATE_FINISHED:
         return "DONE";
     case APP_RACE_STATE_IDLE:
@@ -163,9 +177,34 @@ static void oled_draw(void)
 
     OLED_ShowString(0, 32, "Route:", OLED_6X8);
     OLED_ShowString(36, 32, (char *)route_text(g_snapshot.mode), OLED_6X8);
-    OLED_ShowString(0, 48, "K1 Mode K2 Lap K3 Run", OLED_6X8);
+    OLED_ShowString(0, 48, "K1 Mode K2 Lap K3 R/S", OLED_6X8);
     OLED_Update();
     g_display_dirty = 0u;
+}
+
+static uint8_t pop_key_pressed_event(AppRace_KeyId key_id)
+{
+    uint8_t event = KEY_EVENT_NONE;
+    uint32_t primask;
+
+    if (key_id >= APP_RACE_KEY_COUNT)
+    {
+        return KEY_EVENT_NONE;
+    }
+
+    primask = __get_PRIMASK();
+    __disable_irq();
+    if (g_key_press_count[key_id] > 0u)
+    {
+        --g_key_press_count[key_id];
+        event = KEY_EVENT_PRESSED;
+    }
+    if (primask == 0u)
+    {
+        __enable_irq();
+    }
+
+    return event;
 }
 
 void AppRaceConfig_Init(uint32_t now_ms)
@@ -184,6 +223,7 @@ void AppRaceConfig_Init(uint32_t now_ms)
     {
         BspKey_Bind((BspKey_Id)index, &key_ops);
         Key_Init(&g_keys[index], &key_ops, &key_cfg, now_ms);
+        g_key_press_count[index] = 0u;
     }
 
     BspBuzzer_Bind(&buzzer_ops);
@@ -203,6 +243,7 @@ void AppRaceConfig_Init(uint32_t now_ms)
     g_notify_off_time_ms = now_ms;
     g_last_oled_time_ms = now_ms;
     g_display_dirty = 1u;
+    g_key_timer_ready = 1u;
     oled_draw();
 }
 
@@ -210,21 +251,21 @@ void AppRaceConfig_RunOnce(uint32_t now_ms)
 {
     uint8_t events;
 
-    events = Key_Update(&g_keys[APP_RACE_KEY_MODE], now_ms);
+    events = pop_key_pressed_event(APP_RACE_KEY_MODE);
     if ((events & KEY_EVENT_PRESSED) != 0u)
     {
         next_mode();
         notify_on(now_ms, APP_RACE_NOTIFY_KEY_MS);
     }
 
-    events = Key_Update(&g_keys[APP_RACE_KEY_LAP], now_ms);
+    events = pop_key_pressed_event(APP_RACE_KEY_LAP);
     if ((events & KEY_EVENT_PRESSED) != 0u)
     {
         next_lap();
         notify_on(now_ms, APP_RACE_NOTIFY_KEY_MS);
     }
 
-    events = Key_Update(&g_keys[APP_RACE_KEY_START], now_ms);
+    events = pop_key_pressed_event(APP_RACE_KEY_START);
     if ((events & KEY_EVENT_PRESSED) != 0u)
     {
         toggle_start_stop();
@@ -271,4 +312,28 @@ void AppRaceConfig_SetFinished(void)
 void AppRaceConfig_NotifyPoint(uint32_t now_ms)
 {
     notify_on(now_ms, APP_RACE_NOTIFY_POINT_MS);
+}
+
+void AppRaceConfig_KeyTimer1ms(uint32_t now_ms)
+{
+    uint8_t index;
+    uint8_t events;
+
+    if (g_key_timer_ready == 0u)
+    {
+        return;
+    }
+
+    ++g_debug_key_timer_count;
+    for (index = 0u; index < APP_RACE_KEY_COUNT; ++index)
+    {
+        events = Key_Update(&g_keys[index], now_ms);
+        if ((events & KEY_EVENT_PRESSED) != 0u)
+        {
+            if (g_key_press_count[index] < 255u)
+            {
+                ++g_key_press_count[index];
+            }
+        }
+    }
 }

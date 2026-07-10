@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-#include "module_pid.h"
+#include "lib_pid.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,8 +31,14 @@ typedef struct
     int16_t right_speed;
     int16_t left_target_speed;
     int16_t right_target_speed;
+    int16_t left_target_rpm;
+    int16_t right_target_rpm;
     int16_t left_encoder_delta;
     int16_t right_encoder_delta;
+    int16_t left_actual_rpm;
+    int16_t right_actual_rpm;
+    int16_t left_actual_rpm_filtered;
+    int16_t right_actual_rpm_filtered;
     int32_t left_encoder_total;
     int32_t right_encoder_total;
     int32_t left_encoder_mrev;
