@@ -258,6 +258,50 @@ uint8_t icm45686_module_is_data_ready(const icm45686_module_t *module)
 	return module ? module->data_ready : 0;
 }
 
+static void module_format_raw_data(icm45686_module_t *module, inv_imu_sensor_data_t *raw,
+	                               icm45686_data_t *data)
+{
+	float acc_fsr;
+	float gyr_fsr;
+
+	FORMAT_16_BITS_DATA(module->inv.endianness_data, (uint8_t *)&raw->accel_data[0],
+	                    (uint16_t *)&raw->accel_data[0]);
+	FORMAT_16_BITS_DATA(module->inv.endianness_data, (uint8_t *)&raw->accel_data[1],
+	                    (uint16_t *)&raw->accel_data[1]);
+	FORMAT_16_BITS_DATA(module->inv.endianness_data, (uint8_t *)&raw->accel_data[2],
+	                    (uint16_t *)&raw->accel_data[2]);
+	FORMAT_16_BITS_DATA(module->inv.endianness_data, (uint8_t *)&raw->gyro_data[0],
+	                    (uint16_t *)&raw->gyro_data[0]);
+	FORMAT_16_BITS_DATA(module->inv.endianness_data, (uint8_t *)&raw->gyro_data[1],
+	                    (uint16_t *)&raw->gyro_data[1]);
+	FORMAT_16_BITS_DATA(module->inv.endianness_data, (uint8_t *)&raw->gyro_data[2],
+	                    (uint16_t *)&raw->gyro_data[2]);
+	FORMAT_16_BITS_DATA(module->inv.endianness_data, (uint8_t *)&raw->temp_data,
+	                    (uint16_t *)&raw->temp_data);
+
+	acc_fsr = accel_fsr_g(module->config.accel_fsr);
+	gyr_fsr = gyro_fsr_dps(module->config.gyro_fsr);
+	data->accel_mg[0] = ((float)raw->accel_data[0] * acc_fsr * 1000.0f) / 32768.0f;
+	data->accel_mg[1] = ((float)raw->accel_data[1] * acc_fsr * 1000.0f) / 32768.0f;
+	data->accel_mg[2] = ((float)raw->accel_data[2] * acc_fsr * 1000.0f) / 32768.0f;
+	data->gyro_dps[0] = ((float)raw->gyro_data[0] * gyr_fsr) / 32768.0f;
+	data->gyro_dps[1] = ((float)raw->gyro_data[1] * gyr_fsr) / 32768.0f;
+	data->gyro_dps[2] = ((float)raw->gyro_data[2] * gyr_fsr) / 32768.0f;
+	data->temp_degc = 25.0f + ((float)raw->temp_data / 128.0f);
+}
+
+static void module_dma_read_complete(void *arg, int status)
+{
+	icm45686_module_t *module = (icm45686_module_t *)arg;
+
+	if (!module)
+		return;
+	module->bsp->cs_high(module->bsp->ctx);
+	module->dma_status = status;
+	module->dma_busy = 0U;
+	module->dma_complete = 1U;
+}
+
 int icm45686_module_read_data(icm45686_module_t *module, icm45686_data_t *data)
 {
 	int rc;
@@ -267,25 +311,79 @@ int icm45686_module_read_data(icm45686_module_t *module, icm45686_data_t *data)
 
 	if (!module || !data || !module->initialized)
 		return INV_IMU_ERROR_BAD_ARG;
+	if (module->dma_busy)
+		return INV_IMU_ERROR;
 
 	s_active_module = module;
 	rc = inv_imu_get_register_data(&module->inv, &raw);
 	if (module_check_rc(rc))
 		return rc;
-
+	/* The vendor helper already converted byte order. Convert only units here. */
 	acc_fsr = accel_fsr_g(module->config.accel_fsr);
 	gyr_fsr = gyro_fsr_dps(module->config.gyro_fsr);
-
 	data->accel_mg[0] = ((float)raw.accel_data[0] * acc_fsr * 1000.0f) / 32768.0f;
 	data->accel_mg[1] = ((float)raw.accel_data[1] * acc_fsr * 1000.0f) / 32768.0f;
 	data->accel_mg[2] = ((float)raw.accel_data[2] * acc_fsr * 1000.0f) / 32768.0f;
 	data->gyro_dps[0] = ((float)raw.gyro_data[0] * gyr_fsr) / 32768.0f;
 	data->gyro_dps[1] = ((float)raw.gyro_data[1] * gyr_fsr) / 32768.0f;
 	data->gyro_dps[2] = ((float)raw.gyro_data[2] * gyr_fsr) / 32768.0f;
-	data->temp_degc   = 25.0f + ((float)raw.temp_data / 128.0f);
+	data->temp_degc = 25.0f + ((float)raw.temp_data / 128.0f);
 
 	module->data_ready = 0;
 
+	return INV_IMU_OK;
+}
+
+int icm45686_module_start_read_data_async(icm45686_module_t *module)
+{
+	uint8_t address = ACCEL_DATA_X1_UI | 0x80U;
+	int rc;
+
+	if (!module || !module->initialized || !module->bsp ||
+	    !module->bsp->spi_transfer_dma)
+		return INV_IMU_ERROR_BAD_ARG;
+	if (!module->data_ready || module->dma_busy)
+		return INV_IMU_ERROR_EDMP_BUF_EMPTY;
+
+	module->bsp->cs_low(module->bsp->ctx);
+	rc = module->bsp->spi_transfer(module->bsp->ctx, &address, NULL, 1U);
+	if (rc != 0) {
+		module->bsp->cs_high(module->bsp->ctx);
+		return rc;
+	}
+
+	module->dma_complete = 0U;
+	module->dma_status = 0;
+	module->dma_busy = 1U;
+	module->data_ready = 0U;
+	rc = module->bsp->spi_transfer_dma(module->bsp->ctx, NULL,
+	                                  (uint8_t *)&module->dma_raw,
+	                                  sizeof(module->dma_raw),
+	                                  module_dma_read_complete, module);
+	if (rc != 0) {
+		module->dma_busy = 0U;
+		module->data_ready = 1U;
+		module->bsp->cs_high(module->bsp->ctx);
+	}
+
+	return rc;
+}
+
+int icm45686_module_take_async_data(icm45686_module_t *module, icm45686_data_t *data)
+{
+	int status;
+
+	if (!module || !data)
+		return INV_IMU_ERROR_BAD_ARG;
+	if (!module->dma_complete)
+		return INV_IMU_ERROR_EDMP_BUF_EMPTY;
+
+	status = module->dma_status;
+	module->dma_complete = 0U;
+	if (status != 0)
+		return status;
+
+	module_format_raw_data(module, &module->dma_raw, data);
 	return INV_IMU_OK;
 }
 

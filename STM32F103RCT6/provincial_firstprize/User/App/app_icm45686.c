@@ -102,8 +102,12 @@ int icm45686_app_process(float dt_s, imu_solution_t *solution)
 	icm45686_data_t data;
 	imu_sensor_sample_t sample;
 
-	rc = icm45686_module_read_data_if_ready(&s_icm45686, &data);
+	/* Consume only completed DMA frames. Starting the next transfer never waits
+	 * for DMA completion; the ISR publishes it for a later task iteration. */
+	rc = icm45686_module_take_async_data(&s_icm45686, &data);
 	if (rc) {
+		if (icm45686_module_is_data_ready(&s_icm45686) && !s_icm45686.dma_busy)
+			(void)icm45686_module_start_read_data_async(&s_icm45686);
 		update_snapshot(rc);
 		return rc;
 	}
@@ -118,6 +122,8 @@ int icm45686_app_process(float dt_s, imu_solution_t *solution)
 	sample.timestamp_us = 0;
 
 	imu_attitude_update(&s_attitude, &sample, dt_s, &s_solution);
+	if (icm45686_module_is_data_ready(&s_icm45686) && !s_icm45686.dma_busy)
+		(void)icm45686_module_start_read_data_async(&s_icm45686);
 	if (solution)
 		*solution = s_solution;
 

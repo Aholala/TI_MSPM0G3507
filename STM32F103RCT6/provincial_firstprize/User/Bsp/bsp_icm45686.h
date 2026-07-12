@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 typedef void (*icm45686_bsp_int1_cb_t)(void *arg);
-typedef void (*icm45686_bsp_dma_cb_t)(void *arg);
+typedef void (*icm45686_bsp_dma_cb_t)(void *arg, int status);
 
 typedef struct {
 	void *ctx;

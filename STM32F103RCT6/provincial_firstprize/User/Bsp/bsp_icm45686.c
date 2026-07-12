@@ -18,13 +18,13 @@
 #include <string.h>
 
 #define ICM45686_SPI_TIMEOUT_MS 10U
-#define ICM45686_SPI_DMA_TIMEOUT_MS 10U
 #define ICM45686_SPI_DMA_SCRATCH_LEN 256U
 
 static icm45686_bsp_int1_cb_t s_int1_cb;
 static void *s_int1_cb_arg;
-static volatile uint8_t s_spi_dma_done;
-static volatile uint8_t s_spi_dma_error;
+static icm45686_bsp_dma_cb_t s_spi_dma_cb;
+static void *s_spi_dma_cb_arg;
+static volatile uint8_t s_spi_dma_active;
 
 static int wait_spi_ready(uint32_t timeout_ms)
 {
@@ -111,18 +111,21 @@ int icm45686_bsp_spi_transfer_dma(void *ctx, const uint8_t *tx, uint8_t *rx, uin
 	static uint8_t rx_scratch[ICM45686_SPI_DMA_SCRATCH_LEN];
 	uint8_t *tx_buf;
 	uint8_t *rx_buf;
-	uint32_t start_tick;
 
 	(void)ctx;
 
 	if (len == 0U) {
 		if (cb)
-			cb(cb_arg);
+			cb(cb_arg, 0);
 		return 0;
 	}
 
-	if (len > ICM45686_SPI_DMA_SCRATCH_LEN)
-		return icm45686_bsp_spi_transfer(ctx, tx, rx, len);
+	if (len > ICM45686_SPI_DMA_SCRATCH_LEN) {
+		int status = icm45686_bsp_spi_transfer(ctx, tx, rx, len);
+		if (cb)
+			cb(cb_arg, status);
+		return status;
+	}
 
 	tx_buf = (uint8_t *)tx;
 	rx_buf = rx;
@@ -133,27 +136,18 @@ int icm45686_bsp_spi_transfer_dma(void *ctx, const uint8_t *tx, uint8_t *rx, uin
 	if (!rx_buf)
 		rx_buf = rx_scratch;
 
-	if (wait_spi_ready(ICM45686_SPI_TIMEOUT_MS) != 0)
+	if (HAL_SPI_GetState(&hspi2) != HAL_SPI_STATE_READY || s_spi_dma_active)
 		return -1;
 
-	s_spi_dma_done = 0U;
-	s_spi_dma_error = 0U;
-	if (HAL_SPI_TransmitReceive_DMA(&hspi2, tx_buf, rx_buf, (uint16_t)len) != HAL_OK)
+	s_spi_dma_cb = cb;
+	s_spi_dma_cb_arg = cb_arg;
+	s_spi_dma_active = 1U;
+	if (HAL_SPI_TransmitReceive_DMA(&hspi2, tx_buf, rx_buf, (uint16_t)len) != HAL_OK) {
+		s_spi_dma_active = 0U;
+		s_spi_dma_cb = NULL;
+		s_spi_dma_cb_arg = NULL;
 		return -1;
-
-	start_tick = HAL_GetTick();
-	while (!s_spi_dma_done) {
-		if ((HAL_GetTick() - start_tick) >= ICM45686_SPI_DMA_TIMEOUT_MS) {
-			(void)HAL_SPI_Abort(&hspi2);
-			return -1;
-		}
 	}
-
-	if (s_spi_dma_error)
-		return -1;
-
-	if (cb)
-		cb(cb_arg);
 
 	return 0;
 }
@@ -189,15 +183,29 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-	if (hspi->Instance == SPI2)
-		s_spi_dma_done = 1U;
+	if (hspi->Instance == SPI2 && s_spi_dma_active) {
+		icm45686_bsp_dma_cb_t cb = s_spi_dma_cb;
+		void *cb_arg = s_spi_dma_cb_arg;
+
+		s_spi_dma_active = 0U;
+		s_spi_dma_cb = NULL;
+		s_spi_dma_cb_arg = NULL;
+		if (cb)
+			cb(cb_arg, 0);
+	}
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
-	if (hspi->Instance == SPI2) {
-		s_spi_dma_error = 1U;
-		s_spi_dma_done = 1U;
+	if (hspi->Instance == SPI2 && s_spi_dma_active) {
+		icm45686_bsp_dma_cb_t cb = s_spi_dma_cb;
+		void *cb_arg = s_spi_dma_cb_arg;
+
+		s_spi_dma_active = 0U;
+		s_spi_dma_cb = NULL;
+		s_spi_dma_cb_arg = NULL;
+		if (cb)
+			cb(cb_arg, -1);
 	}
 }
 

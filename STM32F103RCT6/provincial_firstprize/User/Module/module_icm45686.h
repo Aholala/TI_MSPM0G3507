@@ -40,6 +40,10 @@ typedef struct {
 	const icm45686_bsp_t *bsp;
 	icm45686_config_t config;
 	volatile uint8_t data_ready;
+	volatile uint8_t dma_busy;
+	volatile uint8_t dma_complete;
+	volatile int dma_status;
+	inv_imu_sensor_data_t dma_raw;
 	uint8_t initialized;
 } icm45686_module_t;
 
@@ -50,6 +54,8 @@ void icm45686_module_int1_irq_handler(icm45686_module_t *module);
 uint8_t icm45686_module_is_data_ready(const icm45686_module_t *module);
 int icm45686_module_read_data(icm45686_module_t *module, icm45686_data_t *data);
 int icm45686_module_read_data_if_ready(icm45686_module_t *module, icm45686_data_t *data);
+int icm45686_module_start_read_data_async(icm45686_module_t *module);
+int icm45686_module_take_async_data(icm45686_module_t *module, icm45686_data_t *data);
 inv_imu_device_t *icm45686_module_get_inv_device(icm45686_module_t *module);
 
 #endif
