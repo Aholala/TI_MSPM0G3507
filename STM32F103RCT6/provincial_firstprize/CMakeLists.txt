@@ -64,6 +64,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/Bsp/bsp_oled_data.c
     User/Bsp/bsp_tb6612.c
     User/Lib/lib_attitude.c
+	User/Lib/lib_adaptive_mahony.c
     User/Lib/lib_kalman.c
     User/Lib/lib_pid.c
     User/Lib/lib_rate_filter.c

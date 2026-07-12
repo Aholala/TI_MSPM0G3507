@@ -121,3 +121,43 @@ int16_t RateFilter_GetFilteredRate(const RateFilter *filter)
 {
     return (filter != NULL) ? (int16_t)filter->filtered_rate : 0;
 }
+
+void LowPassFilter_Init(LowPassFilter *filter, uint8_t filter_div)
+{
+    if (filter == NULL)
+    {
+        return;
+    }
+
+    filter->filter_div = (filter_div == 0u) ? 1u : filter_div;
+    LowPassFilter_Reset(filter);
+}
+
+void LowPassFilter_Reset(LowPassFilter *filter)
+{
+    if (filter == NULL)
+    {
+        return;
+    }
+
+    filter->output = 0;
+    filter->initialized = 0u;
+}
+
+int32_t LowPassFilter_Update(LowPassFilter *filter, int32_t input)
+{
+    if (filter == NULL)
+    {
+        return input;
+    }
+
+    if (filter->initialized == 0u)
+    {
+        filter->output = input;
+        filter->initialized = 1u;
+        return filter->output;
+    }
+
+    filter->output += (input - filter->output) / (int32_t)filter->filter_div;
+    return filter->output;
+}

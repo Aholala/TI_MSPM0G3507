@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-#define LINE_TRACKER_SENSOR_COUNT 8u
+#define LINE_TRACKER_SENSOR_COUNT 7u
 
 typedef enum
 {

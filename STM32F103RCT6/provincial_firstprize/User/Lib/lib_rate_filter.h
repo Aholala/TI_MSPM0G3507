@@ -25,12 +25,23 @@ typedef struct
     int32_t filtered_rate;
 } RateFilter;
 
+typedef struct
+{
+    int32_t output;
+    uint8_t filter_div;
+    uint8_t initialized;
+} LowPassFilter;
+
 void RateFilter_Init(RateFilter *filter, const RateFilter_Config *cfg);
 void RateFilter_Reset(RateFilter *filter);
 void RateFilter_Update(RateFilter *filter, int16_t delta);
 int16_t RateFilter_DeltaToRate(const RateFilter *filter, int16_t delta);
 int16_t RateFilter_GetInstantRate(const RateFilter *filter);
 int16_t RateFilter_GetFilteredRate(const RateFilter *filter);
+
+void LowPassFilter_Init(LowPassFilter *filter, uint8_t filter_div);
+void LowPassFilter_Reset(LowPassFilter *filter);
+int32_t LowPassFilter_Update(LowPassFilter *filter, int32_t input);
 
 #ifdef __cplusplus
 }

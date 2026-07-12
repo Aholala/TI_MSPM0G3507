@@ -42,7 +42,10 @@ static void update_snapshot(int process_status)
 	s_snapshot.solution = s_solution;
 	s_snapshot.initialized = s_icm45686.initialized;
 	s_snapshot.data_ready = icm45686_module_is_data_ready(&s_icm45686);
+	s_snapshot.gyro_calibrated = imu_attitude_is_gyro_calibrated(&s_attitude);
+	s_snapshot.gyro_calibration_count = s_attitude.gyro_calibration_count;
 	s_snapshot.last_process_status = process_status;
+	s_snapshot.continuous_yaw_deg = imu_attitude_get_continuous_yaw_deg(&s_attitude);
 	if (process_status == 0)
 		++s_snapshot.update_count;
 	g_debug_icm45686_snapshot = s_snapshot;
@@ -153,4 +156,44 @@ float icm45686_app_get_yaw_deg(void)
 	leave_snapshot_lock(primask);
 
 	return yaw_deg;
+}
+
+float icm45686_app_get_continuous_yaw_deg(void)
+{
+	float yaw_deg;
+	uint32_t primask = enter_snapshot_lock();
+
+	yaw_deg = imu_attitude_get_continuous_yaw_deg(&s_attitude);
+	leave_snapshot_lock(primask);
+
+	return yaw_deg;
+}
+
+uint8_t icm45686_app_is_gyro_calibrated(void)
+{
+	return imu_attitude_is_gyro_calibrated(&s_attitude);
+}
+
+void icm45686_app_reset_yaw(void)
+{
+	uint32_t primask = enter_snapshot_lock();
+
+	imu_attitude_reset_yaw(&s_attitude);
+	s_solution.euler.yaw_deg = 0.0f;
+	s_solution.quat = imu_quat_from_euler_rad(s_solution.euler.roll_deg * 0.01745329252f,
+	                                         s_solution.euler.pitch_deg * 0.01745329252f,
+	                                         0.0f);
+	update_snapshot(0);
+	leave_snapshot_lock(primask);
+}
+
+float icm45686_app_get_yaw_error_deg(float target_yaw_deg)
+{
+	float current_yaw_deg;
+	uint32_t primask = enter_snapshot_lock();
+
+	current_yaw_deg = s_snapshot.solution.euler.yaw_deg;
+	leave_snapshot_lock(primask);
+
+	return imu_angle_error_deg(target_yaw_deg, current_yaw_deg);
 }

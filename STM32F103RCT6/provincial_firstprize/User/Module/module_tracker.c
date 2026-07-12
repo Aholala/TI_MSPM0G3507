@@ -13,11 +13,13 @@
 
 #include <stddef.h>
 
-#define LINE_TRACKER_ALL_MASK 0xFFu
+#define LINE_TRACKER_ALL_MASK 0x7Fu
 
 static const int16_t sensor_weights[LINE_TRACKER_SENSOR_COUNT] = {
-    -3500, -2500, -1500, -500, 500, 1500, 2500, 3500
+    1000, 2000, 3000, 4000, 5000, 6000, 7000
 };
+
+#define LINE_TRACKER_CENTER_POSITION 4000
 
 static uint8_t get_active_mask(uint8_t raw_mask, uint8_t active_low)
 {
@@ -83,7 +85,7 @@ LineTracker_Status LineTracker_Update(LineTracker *tracker)
 
     if (tracker->active_mask == LINE_TRACKER_ALL_MASK)
     {
-        tracker->position = 0;
+        tracker->position = LINE_TRACKER_CENTER_POSITION;
         tracker->error = 0;
         tracker->status = LINE_TRACKER_FULL;
         return tracker->status;
@@ -99,7 +101,7 @@ LineTracker_Status LineTracker_Update(LineTracker *tracker)
     }
 
     tracker->position = (int16_t)(weighted_sum / active_count);
-    tracker->error = tracker->position;
+    tracker->error = (int16_t)(tracker->position - LINE_TRACKER_CENTER_POSITION);
     tracker->status = LINE_TRACKER_OK;
 
     return tracker->status;

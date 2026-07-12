@@ -21,8 +21,15 @@ float kalman_1d_update(kalman_1d_t *kf, float measurement)
 	if (!kf)
 		return measurement;
 
-	if (!kf->initialized)
-		kalman_1d_init(kf, 0.01f, 1.0f, measurement);
+	/* Seed the state from the first real sample. Starting an IMU channel at
+	 * zero creates a large artificial transient, especially on the gravity
+	 * axis, and can corrupt the stationary calibration performed at startup. */
+	if (!kf->initialized) {
+		kf->x = measurement;
+		kf->p = 1.0f;
+		kf->initialized = 1;
+		return measurement;
+	}
 
 	kf->p += kf->q;
 	k = kf->p / (kf->p + kf->r);
@@ -102,6 +109,8 @@ void imu_sensor_kalman_init(imu_sensor_kalman_t *filter)
 	for (int i = 0; i < 3; i++) {
 		kalman_1d_init(&filter->accel[i], 0.05f, 4.0f, 0.0f);
 		kalman_1d_init(&filter->gyro[i], 0.01f, 0.5f, 0.0f);
+		filter->accel[i].initialized = 0;
+		filter->gyro[i].initialized = 0;
 	}
 }
 
