@@ -11,8 +11,6 @@
 #ifndef __OLED_DATA_H
 #define __OLED_DATA_H
 
-#include "main.h"
-
 #include <stdint.h>
 
 /*字符集定义*/

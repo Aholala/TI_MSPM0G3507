@@ -16,7 +16,7 @@
 #define __OLED_H
 
 #include "bsp_oled_data.h" /* 字库、图片数据等（外部定义） */
-#include "main.h"          /* HAL库及硬件定义 */
+#include <stdint.h>
 
 /**
  * @brief 字体大小宏定义
@@ -33,6 +33,7 @@
  * @note  配置I2C/SPI接口，发送初始化命令序列，清空显存
  */
 void OLED_Init(void);
+void OLED_WriteCommand(uint8_t Command);
 
 /**
  * @brief 将显存数据刷新到屏幕（全屏更新）

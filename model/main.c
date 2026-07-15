@@ -34,15 +34,48 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "User/App/app_freertos.h"
+#include "User/Bsp/board_config.h"
+#include "User/Bsp/bsp_oled.h"
+
+static void boot_buzzer_test(void)
+{
+    /* Active-high buzzer through an NPN low-side switch. */
+    DL_GPIO_setPins(BUZZER_PORT, BUZZER_BUZZER_OUT_PIN);
+    delay_cycles(CPUCLK_FREQ / 10U);
+    DL_GPIO_clearPins(BUZZER_PORT, BUZZER_BUZZER_OUT_PIN);
+}
 
 int main(void)
 {
     SYSCFG_DL_init();
+
+    boot_buzzer_test();
+
+#if BOARD_OLED_STANDALONE_TEST
+    OLED_Init();
+    OLED_WriteCommand(0xA5U); /* Force every OLED pixel on. */
+    delay_cycles(CPUCLK_FREQ);
+    OLED_WriteCommand(0xA4U);
+    OLED_Clear();
+    OLED_ShowString(0U, 0U, "OLED SOFT I2C", OLED_8X16);
+    OLED_ShowString(0U, 24U, "PA0 SDA PA1 SCL", OLED_6X8);
+    OLED_ShowString(0U, 40U, "ADDR 0x3C", OLED_6X8);
+    OLED_Update();
+    for (;;)
+    {
+        DL_GPIO_setPins(BUZZER_PORT, BUZZER_BUZZER_OUT_PIN);
+        delay_cycles(CPUCLK_FREQ);
+        DL_GPIO_clearPins(BUZZER_PORT, BUZZER_BUZZER_OUT_PIN);
+        delay_cycles(CPUCLK_FREQ);
+    }
+#else
+
     App_FreeRTOS_CreateTasks();
     vTaskStartScheduler();
 
     for (;;) {
     }
+#endif
 }
 
 void vApplicationMallocFailedHook(void)

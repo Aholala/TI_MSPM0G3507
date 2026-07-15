@@ -18,13 +18,23 @@ static float clampf_local(float value, float min_value, float max_value)
 	return value;
 }
 
-static float wrap_pi(float angle)
+float imu_angle_wrap_deg(float angle)
 {
-	while (angle > IMU_PI)
-		angle -= 2.0f * IMU_PI;
-	while (angle < -IMU_PI)
-		angle += 2.0f * IMU_PI;
+	while (angle > 180.0f)
+		angle -= 360.0f;
+	while (angle < -180.0f)
+		angle += 360.0f;
 	return angle;
+}
+
+static float angle_lpf_deg(float previous, float input, float alpha)
+{
+	return imu_angle_wrap_deg(previous + alpha * imu_angle_wrap_deg(input - previous));
+}
+
+float imu_angle_error_deg(float target_deg, float current_deg)
+{
+	return imu_angle_wrap_deg(target_deg - current_deg);
 }
 
 static void normalize_quat(imu_quat_t *q)
@@ -163,13 +173,18 @@ void imu_attitude_get_default_config(imu_attitude_config_t *config)
 	config->stationary_accel_tolerance_mps2 = 0.35f;
 	config->gyro_bias_alpha = 0.002f;
 	config->yaw_gyro_deadband_radps = 0.003f;
+	config->yaw_gyro_scale = 1.0f;
 	config->angle_r_min = 0.02f;
 	config->angle_r_max = 2.0f;
+	config->euler_lpf_time_constant_s = 0.03f;
+	config->gyro_calibration_samples = 400U;
 }
 
 void imu_attitude_init_with_config(imu_attitude_estimator_t *estimator,
                                    const imu_attitude_config_t *config)
 {
+	adaptive_mahony_config_t fusion_config;
+
 	if (!estimator)
 		return;
 
@@ -180,24 +195,53 @@ void imu_attitude_init_with_config(imu_attitude_estimator_t *estimator,
 		imu_attitude_get_default_config(&estimator->config);
 
 	imu_sensor_kalman_init(&estimator->sensor_filter);
+	adaptive_mahony_get_default_config(&fusion_config);
+	adaptive_mahony_init(&estimator->fusion, &fusion_config);
 	kalman_angle_init(&estimator->roll_filter, 0.001f, 0.003f, estimator->config.angle_r_min,
 	                  0.0f);
 	kalman_angle_init(&estimator->pitch_filter, 0.001f, 0.003f, estimator->config.angle_r_min,
 	                  0.0f);
+	/* Let the first accelerometer attitude seed both angle filters. */
+	estimator->roll_filter.initialized = 0U;
+	estimator->pitch_filter.initialized = 0U;
+	estimator->gyro_calibrated = (estimator->config.gyro_calibration_samples == 0U);
 	estimator->initialized = 1;
+}
+
+void imu_attitude_reset_yaw(imu_attitude_estimator_t *estimator)
+{
+	if (!estimator)
+		return;
+
+	estimator->yaw_rad = 0.0f;
+	estimator->continuous_yaw_rad = 0.0f;
+	estimator->previous_yaw_rate_radps = 0.0f;
+	estimator->previous_wrapped_yaw_deg = 0.0f;
+	estimator->yaw_unwrap_initialized = 1U;
+	estimator->filtered_euler.yaw_deg = 0.0f;
+	adaptive_mahony_reset_heading(&estimator->fusion);
+}
+
+uint8_t imu_attitude_is_gyro_calibrated(const imu_attitude_estimator_t *estimator)
+{
+	return estimator ? estimator->gyro_calibrated : 0U;
+}
+
+float imu_attitude_get_continuous_yaw_deg(const imu_attitude_estimator_t *estimator)
+{
+	return estimator ? (estimator->continuous_yaw_rad * RAD_TO_DEG) : 0.0f;
 }
 
 void imu_attitude_update(imu_attitude_estimator_t *estimator, const imu_sensor_sample_t *raw,
                          float dt_s, imu_solution_t *solution)
 {
-	float roll_acc;
-	float pitch_acc;
-	float roll_rad;
-	float pitch_rad;
 	float accel_norm;
 	float accel_error;
 	float accel_trust;
 	float corrected_yaw_rate;
+	float euler_lpf_alpha;
+	imu_euler_t fused_euler;
+	uint8_t calibration_stationary;
 
 	if (!estimator || !raw || !solution)
 		return;
@@ -218,29 +262,122 @@ void imu_attitude_update(imu_attitude_estimator_t *estimator, const imu_sensor_s
 	                           estimator->config.accel_trust_max);
 	solution->compensation.accel_trust = accel_trust;
 
-	update_gyro_bias(estimator, &solution->filtered, accel_norm, solution);
-	solution->filtered.gyro_radps = vec3_sub(solution->filtered.gyro_radps,
-	                                         estimator->gyro_bias_radps);
+	/* A gyro-only yaw has no absolute reference. Estimate its zero-rate output
+	 * while the car is stationary and do not integrate yaw until the estimate
+	 * is valid. Any movement restarts the consecutive-sample calibration. */
+	if (!estimator->gyro_calibrated) {
+		calibration_stationary =
+		    (accel_error < estimator->config.stationary_accel_tolerance_mps2) &&
+		    (vec3_norm(raw->gyro_radps) < estimator->config.stationary_gyro_threshold_radps);
 
-	estimator->roll_filter.r_measure =
-	    estimator->config.angle_r_min +
-	    ((estimator->config.angle_r_max - estimator->config.angle_r_min) * (1.0f - accel_trust));
-	estimator->pitch_filter.r_measure = estimator->roll_filter.r_measure;
+		if (calibration_stationary) {
+			estimator->gyro_calibration_sum.x += raw->gyro_radps.x;
+			estimator->gyro_calibration_sum.y += raw->gyro_radps.y;
+			estimator->gyro_calibration_sum.z += raw->gyro_radps.z;
+			estimator->gyro_calibration_sum_sq.x += raw->gyro_radps.x * raw->gyro_radps.x;
+			estimator->gyro_calibration_sum_sq.y += raw->gyro_radps.y * raw->gyro_radps.y;
+			estimator->gyro_calibration_sum_sq.z += raw->gyro_radps.z * raw->gyro_radps.z;
+			++estimator->gyro_calibration_count;
+		} else {
+			memset(&estimator->gyro_calibration_sum, 0,
+			       sizeof(estimator->gyro_calibration_sum));
+			memset(&estimator->gyro_calibration_sum_sq, 0,
+			       sizeof(estimator->gyro_calibration_sum_sq));
+			estimator->gyro_calibration_count = 0U;
+		}
 
-	roll_acc = atan2f(solution->filtered.accel_mps2.y, solution->filtered.accel_mps2.z);
-	pitch_acc = atan2f(-solution->filtered.accel_mps2.x,
-	                   sqrtf((solution->filtered.accel_mps2.y * solution->filtered.accel_mps2.y) +
-	                         (solution->filtered.accel_mps2.z * solution->filtered.accel_mps2.z)));
+		if (estimator->gyro_calibration_count >= estimator->config.gyro_calibration_samples) {
+			float sample_count = (float)estimator->gyro_calibration_count;
 
-	roll_rad = kalman_angle_update(&estimator->roll_filter, roll_acc,
-	                               solution->filtered.gyro_radps.x, dt_s);
-	pitch_rad = kalman_angle_update(&estimator->pitch_filter, pitch_acc,
-	                                solution->filtered.gyro_radps.y, dt_s);
+			estimator->gyro_bias_radps.x = estimator->gyro_calibration_sum.x / sample_count;
+			estimator->gyro_bias_radps.y = estimator->gyro_calibration_sum.y / sample_count;
+			estimator->gyro_bias_radps.z = estimator->gyro_calibration_sum.z / sample_count;
+			/* Use the measured stationary variance as each adaptive Kalman
+			 * channel's R instead of carrying an MPU6050-specific constant. */
+			estimator->fusion.gyro_filter[0].r = fmaxf(
+			    estimator->gyro_calibration_sum_sq.x / sample_count -
+			        estimator->gyro_bias_radps.x * estimator->gyro_bias_radps.x,
+			    1.0e-9f);
+			estimator->fusion.gyro_filter[1].r = fmaxf(
+			    estimator->gyro_calibration_sum_sq.y / sample_count -
+			        estimator->gyro_bias_radps.y * estimator->gyro_bias_radps.y,
+			    1.0e-9f);
+			estimator->fusion.gyro_filter[2].r = fmaxf(
+			    estimator->gyro_calibration_sum_sq.z / sample_count -
+			        estimator->gyro_bias_radps.z * estimator->gyro_bias_radps.z,
+			    1.0e-9f);
+			for (uint8_t axis = 0U; axis < 3U; ++axis) {
+				estimator->fusion.gyro_filter[axis].initialized = 0U;
+				estimator->fusion.gyro_filter[axis].index = 0U;
+				estimator->fusion.gyro_filter[axis].full = 0U;
+			}
+			estimator->gyro_calibrated = 1U;
+			imu_attitude_reset_yaw(estimator);
+		}
+	}
+
+	if (estimator->gyro_calibrated)
+		update_gyro_bias(estimator, raw, accel_norm, solution);
+	else {
+		solution->compensation.gyro_bias_radps = estimator->gyro_bias_radps;
+		solution->compensation.stationary = calibration_stationary;
+	}
+	/* The adaptive Mahony core owns gyro filtering. Keep the existing scalar
+	 * Kalman stage only for acceleration, then feed bias-corrected raw rates to
+	 * the innovation-adaptive gyro filters to avoid double filtering and lag. */
+	solution->filtered.gyro_radps = vec3_sub(raw->gyro_radps, estimator->gyro_bias_radps);
+	solution->filtered.gyro_radps.z *= estimator->config.yaw_gyro_scale;
 	corrected_yaw_rate = solution->filtered.gyro_radps.z;
 	if (fabsf(corrected_yaw_rate) < estimator->config.yaw_gyro_deadband_radps)
 		corrected_yaw_rate = 0.0f;
-	estimator->yaw_rad = wrap_pi(estimator->yaw_rad + (corrected_yaw_rate * dt_s));
+	/* Roll and pitch must remain responsive while the startup bias estimate is
+	 * being collected.  Only yaw has no accelerometer reference, so freeze its
+	 * integration until the stationary Z-axis bias is valid. */
+	if (!estimator->gyro_calibrated)
+		corrected_yaw_rate = 0.0f;
+	solution->filtered.gyro_radps.z = corrected_yaw_rate;
 
-	solution->quat = imu_quat_from_euler_rad(roll_rad, pitch_rad, estimator->yaw_rad);
-	solution->euler = imu_euler_from_quat(&solution->quat);
+	adaptive_mahony_update(&estimator->fusion, solution->filtered.accel_mps2,
+	                       solution->filtered.gyro_radps, accel_trust,
+	                       solution->compensation.stationary, dt_s);
+	solution->filtered.gyro_radps = estimator->fusion.filtered_gyro_radps;
+	corrected_yaw_rate = solution->filtered.gyro_radps.z;
+
+	estimator->previous_yaw_rate_radps = corrected_yaw_rate;
+
+	solution->quat = estimator->fusion.quat;
+	fused_euler = imu_euler_from_quat(&solution->quat);
+	if (!estimator->euler_lpf_initialized ||
+	    estimator->config.euler_lpf_time_constant_s <= 0.0f) {
+		estimator->filtered_euler = fused_euler;
+		estimator->euler_lpf_initialized = 1U;
+	} else {
+		euler_lpf_alpha = dt_s / (estimator->config.euler_lpf_time_constant_s + dt_s);
+		euler_lpf_alpha = clampf_local(euler_lpf_alpha, 0.0f, 1.0f);
+		estimator->filtered_euler.roll_deg =
+		    angle_lpf_deg(estimator->filtered_euler.roll_deg, fused_euler.roll_deg,
+		                  euler_lpf_alpha);
+		estimator->filtered_euler.pitch_deg =
+		    angle_lpf_deg(estimator->filtered_euler.pitch_deg, fused_euler.pitch_deg,
+		                  euler_lpf_alpha);
+		estimator->filtered_euler.yaw_deg =
+		    angle_lpf_deg(estimator->filtered_euler.yaw_deg, fused_euler.yaw_deg,
+		                  euler_lpf_alpha);
+	}
+	solution->euler = estimator->filtered_euler;
+	/* Unwrap the filtered quaternion yaw. Crossing +180/-180 now contributes
+	 * only the real small angular step, never an artificial 360-degree jump. */
+	if (!estimator->yaw_unwrap_initialized) {
+		estimator->previous_wrapped_yaw_deg = solution->euler.yaw_deg;
+		estimator->yaw_unwrap_initialized = 1U;
+	} else if (estimator->gyro_calibrated) {
+		float yaw_step_deg = imu_angle_wrap_deg(
+		    solution->euler.yaw_deg - estimator->previous_wrapped_yaw_deg);
+		estimator->continuous_yaw_rad += yaw_step_deg / RAD_TO_DEG;
+		estimator->previous_wrapped_yaw_deg = solution->euler.yaw_deg;
+	} else {
+		estimator->continuous_yaw_rad = 0.0f;
+		estimator->previous_wrapped_yaw_deg = solution->euler.yaw_deg;
+	}
+	estimator->yaw_rad = solution->euler.yaw_deg / RAD_TO_DEG;
 }

@@ -42,6 +42,8 @@ extern "C" {
 
 /* Line sensors */
 #define BOARD_LINE_SENSOR_DEFAULT_ACTIVE_LOW 0u
+/* Sensor indices must run from the vehicle's left side to its right side. */
+#define BOARD_LINE_SENSOR_INDEX0_IS_LEFT     1u
 #define BOARD_LINE_SENSOR_0_GPIO_PORT      GPIOC
 #define BOARD_LINE_SENSOR_0_GPIO_PIN       GPIO_PIN_0
 #define BOARD_LINE_SENSOR_1_GPIO_PORT      GPIOC
@@ -87,7 +89,7 @@ extern "C" {
 
 /* Chassis line-follow default speed, in encoder pulses per control period. */
 #define BOARD_CONTROL_TASK_PERIOD_MS        10u
-#define BOARD_CHASSIS_DEFAULT_SPEED_RPM     300u
+#define BOARD_CHASSIS_DEFAULT_SPEED_RPM     200u
 #define BOARD_CHASSIS_DEFAULT_SPEED_DELTA   \
     ((BOARD_ENCODER_OUTPUT_PULSES_PER_REV * BOARD_CHASSIS_DEFAULT_SPEED_RPM * \
       BOARD_CONTROL_TASK_PERIOD_MS) / 60000u)

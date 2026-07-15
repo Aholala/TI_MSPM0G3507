@@ -12,7 +12,7 @@
 #include "app_line_follow.h"
 
 #include "bsp_line_sensor.h"
-#include "main.h"
+#include "ti_msp_dl_config.h"
 
 static LineTracker g_line_tracker;
 static AppLineFollow_Snapshot g_line_follow_snapshot;

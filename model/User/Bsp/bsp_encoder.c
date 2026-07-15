@@ -1,35 +1,42 @@
-/**
- * @file bsp_encoder.c
- * @author Ahola邱泽钦 (aholace0328@gmail.com)
- * @brief 
- * @version 1.0
- * @date 2026-07-06
- * 
- * @copyright Copyright (c) 2026
- * 
- */
-
 #include "bsp_encoder.h"
 
-#include "tim.h"
+#include <limits.h>
+#include <stddef.h>
+
+#include "board_config.h"
+#include "ti_msp_dl_config.h"
 
 typedef struct
 {
-    TIM_HandleTypeDef *htim;
-    int16_t last_count;
-    int32_t total_count;
+    uint32_t pin_a;
+    uint32_t pin_b;
+    volatile int32_t total_count;
+    int32_t last_reported_count;
+    volatile uint8_t previous_state;
     uint8_t inverted;
 } BspEncoder;
 
+/* Index is (previous AB << 2) | current AB. Invalid jumps count as zero. */
+static const int8_t quadrature_delta[16] = {
+     0, -1,  1,  0,
+     1,  0,  0, -1,
+    -1,  0,  0,  1,
+     0,  1, -1,  0,
+};
+
 static BspEncoder encoders[BSP_ENCODER_COUNT] = {
     {
-        &htim4,
+        ENCODER_E1A_PIN,
+        ENCODER_E1B_PIN,
+        0,
         0,
         0,
         BOARD_ENCODER_LEFT_INVERTED,
     },
     {
-        &htim8,
+        ENCODER_E2A_PIN,
+        ENCODER_E2B_PIN,
+        0,
         0,
         0,
         BOARD_ENCODER_RIGHT_INVERTED,
@@ -40,10 +47,59 @@ static BspEncoder *get_encoder(BspEncoder_Id encoder_id)
 {
     if (encoder_id >= BSP_ENCODER_COUNT)
     {
-        return 0;
+        return NULL;
     }
 
     return &encoders[encoder_id];
+}
+
+static uint8_t read_state(const BspEncoder *encoder)
+{
+    uint32_t pins = DL_GPIO_readPins(ENCODER_PORT,
+                                     encoder->pin_a | encoder->pin_b);
+    uint8_t state = 0u;
+
+    if ((pins & encoder->pin_a) != 0u)
+    {
+        state |= 2u;
+    }
+    if ((pins & encoder->pin_b) != 0u)
+    {
+        state |= 1u;
+    }
+
+    return state;
+}
+
+static void update_encoder(BspEncoder *encoder)
+{
+    uint8_t current_state = read_state(encoder);
+    uint8_t transition = (uint8_t)((encoder->previous_state << 2u) |
+                                   current_state);
+    int8_t delta = quadrature_delta[transition];
+
+    encoder->previous_state = current_state;
+    if (encoder->inverted != 0u)
+    {
+        delta = (int8_t)-delta;
+    }
+    encoder->total_count += delta;
+}
+
+static uint32_t enter_critical(void)
+{
+    uint32_t primask = __get_PRIMASK();
+
+    __disable_irq();
+    return primask;
+}
+
+static void leave_critical(uint32_t primask)
+{
+    if (primask == 0u)
+    {
+        __enable_irq();
+    }
 }
 
 void BspEncoder_Init(void)
@@ -52,57 +108,77 @@ void BspEncoder_Init(void)
 
     for (index = 0u; index < BSP_ENCODER_COUNT; ++index)
     {
-        __HAL_TIM_SET_COUNTER(encoders[index].htim, 0u);
-        encoders[index].last_count = 0;
         encoders[index].total_count = 0;
-        (void)HAL_TIM_Encoder_Start(encoders[index].htim, TIM_CHANNEL_ALL);
+        encoders[index].last_reported_count = 0;
+        encoders[index].previous_state = read_state(&encoders[index]);
     }
+
+    DL_GPIO_clearInterruptStatus(ENCODER_PORT,
+                                 ENCODER_E1A_PIN | ENCODER_E1B_PIN |
+                                 ENCODER_E2A_PIN | ENCODER_E2B_PIN);
+    NVIC_ClearPendingIRQ(ENCODER_INT_IRQN);
+    NVIC_EnableIRQ(ENCODER_INT_IRQN);
 }
 
 void BspEncoder_Reset(BspEncoder_Id encoder_id)
 {
     BspEncoder *encoder = get_encoder(encoder_id);
+    uint32_t primask;
 
-    if (encoder == 0)
+    if (encoder == NULL)
     {
         return;
     }
 
-    __HAL_TIM_SET_COUNTER(encoder->htim, 0u);
-    encoder->last_count = 0;
+    primask = enter_critical();
     encoder->total_count = 0;
+    encoder->last_reported_count = 0;
+    encoder->previous_state = read_state(encoder);
+    leave_critical(primask);
 }
 
 int16_t BspEncoder_ReadDelta(BspEncoder_Id encoder_id)
 {
     BspEncoder *encoder = get_encoder(encoder_id);
-    int16_t current_count;
-    int16_t delta;
+    int32_t delta;
+    uint32_t primask;
 
-    if (encoder == 0)
+    if (encoder == NULL)
     {
         return 0;
     }
 
-    current_count = (int16_t)__HAL_TIM_GET_COUNTER(encoder->htim);
-    delta = (int16_t)(current_count - encoder->last_count);
-    encoder->last_count = current_count;
+    primask = enter_critical();
+    delta = encoder->total_count - encoder->last_reported_count;
+    encoder->last_reported_count = encoder->total_count;
+    leave_critical(primask);
 
-    if (encoder->inverted != 0u)
+    if (delta > INT16_MAX)
     {
-        delta = (int16_t)-delta;
+        return INT16_MAX;
     }
-
-    encoder->total_count += delta;
-
-    return delta;
+    if (delta < INT16_MIN)
+    {
+        return INT16_MIN;
+    }
+    return (int16_t)delta;
 }
 
 int32_t BspEncoder_GetTotal(BspEncoder_Id encoder_id)
 {
     BspEncoder *encoder = get_encoder(encoder_id);
+    int32_t total;
+    uint32_t primask;
 
-    return (encoder != 0) ? encoder->total_count : 0;
+    if (encoder == NULL)
+    {
+        return 0;
+    }
+
+    primask = enter_critical();
+    total = encoder->total_count;
+    leave_critical(primask);
+    return total;
 }
 
 uint16_t BspEncoder_GetPulsesPerRevolution(void)
@@ -112,24 +188,23 @@ uint16_t BspEncoder_GetPulsesPerRevolution(void)
 
 int32_t BspEncoder_PulsesToMilliRevolutions(int32_t pulses)
 {
-    int32_t scaled;
+    int64_t scaled;
 
     if (BOARD_ENCODER_OUTPUT_PULSES_PER_REV == 0u)
     {
         return 0;
     }
 
-    scaled = pulses * 1000;
+    scaled = (int64_t)pulses * 1000;
     if (scaled >= 0)
     {
-        scaled += (int32_t)(BOARD_ENCODER_OUTPUT_PULSES_PER_REV / 2u);
+        scaled += BOARD_ENCODER_OUTPUT_PULSES_PER_REV / 2u;
     }
     else
     {
-        scaled -= (int32_t)(BOARD_ENCODER_OUTPUT_PULSES_PER_REV / 2u);
+        scaled -= BOARD_ENCODER_OUTPUT_PULSES_PER_REV / 2u;
     }
-
-    return scaled / (int32_t)BOARD_ENCODER_OUTPUT_PULSES_PER_REV;
+    return (int32_t)(scaled / BOARD_ENCODER_OUTPUT_PULSES_PER_REV);
 }
 
 int32_t BspEncoder_PulsesToMillimeters(int32_t pulses)
@@ -142,18 +217,9 @@ int32_t BspEncoder_PulsesToMillimeters(int32_t pulses)
         return 0;
     }
 
-    distance_um = (int64_t)pulses * (int64_t)BOARD_WHEEL_CIRCUMFERENCE_UM;
+    distance_um = (int64_t)pulses * BOARD_WHEEL_CIRCUMFERENCE_UM;
     divisor = (int64_t)BOARD_ENCODER_OUTPUT_PULSES_PER_REV * 1000;
-
-    if (distance_um >= 0)
-    {
-        distance_um += divisor / 2;
-    }
-    else
-    {
-        distance_um -= divisor / 2;
-    }
-
+    distance_um += (distance_um >= 0) ? (divisor / 2) : -(divisor / 2);
     return (int32_t)(distance_um / divisor);
 }
 
@@ -165,4 +231,23 @@ int32_t BspEncoder_GetTotalMilliRevolutions(BspEncoder_Id encoder_id)
 int32_t BspEncoder_GetTotalMillimeters(BspEncoder_Id encoder_id)
 {
     return BspEncoder_PulsesToMillimeters(BspEncoder_GetTotal(encoder_id));
+}
+
+void GROUP1_IRQHandler(void)
+{
+    const uint32_t encoder_pins = ENCODER_E1A_PIN | ENCODER_E1B_PIN |
+                                  ENCODER_E2A_PIN | ENCODER_E2B_PIN;
+    uint32_t pending = DL_GPIO_getEnabledInterruptStatus(ENCODER_PORT,
+                                                          encoder_pins);
+
+    DL_GPIO_clearInterruptStatus(ENCODER_PORT, pending);
+
+    if ((pending & (ENCODER_E1A_PIN | ENCODER_E1B_PIN)) != 0u)
+    {
+        update_encoder(&encoders[BSP_ENCODER_LEFT]);
+    }
+    if ((pending & (ENCODER_E2A_PIN | ENCODER_E2B_PIN)) != 0u)
+    {
+        update_encoder(&encoders[BSP_ENCODER_RIGHT]);
+    }
 }

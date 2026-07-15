@@ -9,9 +9,18 @@
 /**
  * Import the modules used in this configuration.
  */
-const GPIO   = scripting.addModule("/ti/driverlib/GPIO", {}, false);
-const GPIO1  = GPIO.addInstance();
-const SYSCTL = scripting.addModule("/ti/driverlib/SYSCTL");
+const GPIO        = scripting.addModule("/ti/driverlib/GPIO", {}, false);
+const GPIO1       = GPIO.addInstance();
+const GPIO2       = GPIO.addInstance();
+const GPIO3       = GPIO.addInstance();
+const GPIO4       = GPIO.addInstance();
+const GPIO5       = GPIO.addInstance();
+const I2C         = scripting.addModule("/ti/driverlib/I2C", {}, false);
+const MPU6050_I2C = I2C.addInstance();
+const PWM         = scripting.addModule("/ti/driverlib/PWM", {}, false);
+const MOTOR_PWMA  = PWM.addInstance();
+const MOTOR_PWMB  = PWM.addInstance();
+const SYSCTL      = scripting.addModule("/ti/driverlib/SYSCTL");
 
 /**
  * Write custom configuration values to the imported modules.
@@ -37,24 +46,143 @@ mux12.inputSelect = "zSYSPLLMUX_HFCLK";
 const pinFunction4     = system.clockTree["HFXT"];
 pinFunction4.inputFreq = 40;
 pinFunction4.enable    = true;
+/* Allow the 40 MHz crystal and its supply rail to settle during a cold
+ * power-on. The monitor prevents SYSPLL from being selected before HFXT is
+ * actually stable. */
+pinFunction4.HFXTStartup  = 100;
+pinFunction4.HFCLKMonitor = true;
 
 GPIO1.$name                              = "KEY";
 GPIO1.associatedPins.create(3);
 GPIO1.associatedPins[0].$name            = "KEY1";
 GPIO1.associatedPins[0].direction        = "INPUT";
 GPIO1.associatedPins[0].internalResistor = "PULL_UP";
-GPIO1.associatedPins[0].assignedPort     = "PORTB";
-GPIO1.associatedPins[0].assignedPin      = "4";
+GPIO1.associatedPins[0].assignedPort     = "PORTA";
+GPIO1.associatedPins[0].assignedPin      = "16";
 GPIO1.associatedPins[1].$name            = "KEY2";
 GPIO1.associatedPins[1].direction        = "INPUT";
 GPIO1.associatedPins[1].internalResistor = "PULL_UP";
 GPIO1.associatedPins[1].assignedPort     = "PORTA";
-GPIO1.associatedPins[1].assignedPin      = "14";
+GPIO1.associatedPins[1].assignedPin      = "8";
 GPIO1.associatedPins[2].$name            = "KEY3";
 GPIO1.associatedPins[2].direction        = "INPUT";
 GPIO1.associatedPins[2].internalResistor = "PULL_UP";
 GPIO1.associatedPins[2].assignedPort     = "PORTA";
-GPIO1.associatedPins[2].assignedPin      = "16";
+GPIO1.associatedPins[2].assignedPin      = "18";
+
+GPIO2.$name                          = "BUZZER";
+GPIO2.associatedPins[0].$name        = "BUZZER_OUT";
+GPIO2.associatedPins[0].initialValue = "CLEARED";
+GPIO2.associatedPins[0].assignedPort = "PORTA";
+GPIO2.associatedPins[0].assignedPin  = "9";
+
+GPIO3.$name                          = "ENCODER";
+GPIO3.associatedPins.create(4);
+GPIO3.associatedPins[0].$name        = "E1B";
+GPIO3.associatedPins[0].direction    = "INPUT";
+GPIO3.associatedPins[0].interruptEn  = true;
+GPIO3.associatedPins[0].polarity     = "RISE_FALL";
+GPIO3.associatedPins[0].assignedPort = "PORTB";
+GPIO3.associatedPins[0].assignedPin  = "18";
+GPIO3.associatedPins[1].$name        = "E1A";
+GPIO3.associatedPins[1].direction    = "INPUT";
+GPIO3.associatedPins[1].interruptEn  = true;
+GPIO3.associatedPins[1].polarity     = "RISE_FALL";
+GPIO3.associatedPins[1].assignedPort = "PORTB";
+GPIO3.associatedPins[1].assignedPin  = "19";
+GPIO3.associatedPins[2].$name        = "E2B";
+GPIO3.associatedPins[2].direction    = "INPUT";
+GPIO3.associatedPins[2].interruptEn  = true;
+GPIO3.associatedPins[2].polarity     = "RISE_FALL";
+GPIO3.associatedPins[2].assignedPort = "PORTB";
+GPIO3.associatedPins[2].assignedPin  = "20";
+GPIO3.associatedPins[3].$name        = "E2A";
+GPIO3.associatedPins[3].direction    = "INPUT";
+GPIO3.associatedPins[3].interruptEn  = true;
+GPIO3.associatedPins[3].polarity     = "RISE_FALL";
+GPIO3.associatedPins[3].assignedPort = "PORTB";
+GPIO3.associatedPins[3].assignedPin  = "24";
+
+GPIO4.$name                          = "LINE_SENSOR";
+GPIO4.associatedPins.create(7);
+GPIO4.associatedPins[0].$name        = "SENSOR1";
+GPIO4.associatedPins[0].direction    = "INPUT";
+GPIO4.associatedPins[0].internalResistor = "PULL_UP";
+GPIO4.associatedPins[0].assignedPort = "PORTA";
+GPIO4.associatedPins[0].assignedPin  = "2";
+GPIO4.associatedPins[1].$name        = "SENSOR2";
+GPIO4.associatedPins[1].direction    = "INPUT";
+GPIO4.associatedPins[1].internalResistor = "PULL_UP";
+GPIO4.associatedPins[1].assignedPort = "PORTA";
+GPIO4.associatedPins[1].assignedPin  = "7";
+GPIO4.associatedPins[2].$name        = "SENSOR3";
+GPIO4.associatedPins[2].direction    = "INPUT";
+GPIO4.associatedPins[2].internalResistor = "PULL_UP";
+GPIO4.associatedPins[2].assignedPort = "PORTA";
+GPIO4.associatedPins[2].assignedPin  = "22";
+GPIO4.associatedPins[3].$name        = "SENSOR4";
+GPIO4.associatedPins[3].direction    = "INPUT";
+GPIO4.associatedPins[3].internalResistor = "PULL_UP";
+GPIO4.associatedPins[3].assignedPort = "PORTA";
+GPIO4.associatedPins[3].assignedPin  = "23";
+GPIO4.associatedPins[4].$name        = "SENSOR5";
+GPIO4.associatedPins[4].direction    = "INPUT";
+GPIO4.associatedPins[4].internalResistor = "PULL_UP";
+GPIO4.associatedPins[4].assignedPort = "PORTA";
+GPIO4.associatedPins[4].assignedPin  = "24";
+GPIO4.associatedPins[5].$name        = "SENSOR6";
+GPIO4.associatedPins[5].direction    = "INPUT";
+GPIO4.associatedPins[5].internalResistor = "PULL_UP";
+GPIO4.associatedPins[5].assignedPort = "PORTA";
+GPIO4.associatedPins[5].assignedPin  = "27";
+GPIO4.associatedPins[6].$name        = "SENSOR7";
+GPIO4.associatedPins[6].direction    = "INPUT";
+GPIO4.associatedPins[6].internalResistor = "PULL_UP";
+GPIO4.associatedPins[6].assignedPort = "PORTB";
+GPIO4.associatedPins[6].assignedPin  = "8";
+
+GPIO5.$name                          = "TB6612_DIR";
+GPIO5.associatedPins.create(4);
+GPIO5.associatedPins[0].$name        = "AIN1";
+GPIO5.associatedPins[0].initialValue = "CLEARED";
+GPIO5.associatedPins[0].assignedPort = "PORTA";
+GPIO5.associatedPins[0].assignedPin  = "12";
+GPIO5.associatedPins[1].$name        = "AIN2";
+GPIO5.associatedPins[1].initialValue = "CLEARED";
+GPIO5.associatedPins[1].assignedPort = "PORTA";
+GPIO5.associatedPins[1].assignedPin  = "13";
+GPIO5.associatedPins[2].$name        = "BIN1";
+GPIO5.associatedPins[2].initialValue = "CLEARED";
+GPIO5.associatedPins[2].assignedPort = "PORTA";
+GPIO5.associatedPins[2].assignedPin  = "14";
+GPIO5.associatedPins[3].$name        = "BIN2";
+GPIO5.associatedPins[3].initialValue = "CLEARED";
+GPIO5.associatedPins[3].assignedPort = "PORTA";
+GPIO5.associatedPins[3].assignedPin  = "15";
+
+MPU6050_I2C.$name                     = "MPU6050_I2C";
+MPU6050_I2C.basicEnableController     = true;
+MPU6050_I2C.basicControllerBusSpeed   = 400000;
+MPU6050_I2C.advAnalogGlitchFilter     = "DISABLED";
+MPU6050_I2C.peripheral.$assign        = "I2C1";
+MPU6050_I2C.peripheral.sdaPin.$assign = "PB3";
+MPU6050_I2C.peripheral.sclPin.$assign = "PB2";
+
+MOTOR_PWMA.$name                      = "MOTOR_PWMA";
+MOTOR_PWMA.timerCount                 = 4000;
+MOTOR_PWMA.ccIndex                    = [0];
+MOTOR_PWMA.peripheral.$assign         = "TIMG7";
+MOTOR_PWMA.peripheral.ccp0Pin.$assign = "PA17";
+MOTOR_PWMA.PWM_CHANNEL_0.$name        = "MOTOR_PWMA_CHANNEL";
+MOTOR_PWMA.PWM_CHANNEL_0.dutyCycle    = 0;
+
+MOTOR_PWMB.$name                      = "MOTOR_PWMB";
+MOTOR_PWMB.timerCount                 = 4000;
+MOTOR_PWMB.ccIndex                    = [0];
+MOTOR_PWMB.peripheral.$assign         = "TIMA0";
+MOTOR_PWMB.peripheral.ccp0Pin.$assign = "PA21";
+MOTOR_PWMB.PWM_CHANNEL_0.$name        = "MOTOR_PWMB_CHANNEL";
+MOTOR_PWMB.PWM_CHANNEL_0.dutyCycle    = 0;
 
 const Board = scripting.addModule("/ti/driverlib/Board", {}, false);
 
@@ -69,9 +197,25 @@ SYSCTL.clockTreeEn           = true;
 pinFunction4.peripheral.$suggestSolution           = "SYSCTL";
 pinFunction4.peripheral.hfxInPin.$suggestSolution  = "PA5";
 pinFunction4.peripheral.hfxOutPin.$suggestSolution = "PA6";
-GPIO1.associatedPins[0].pin.$suggestSolution       = "PB4";
-GPIO1.associatedPins[1].pin.$suggestSolution       = "PA14";
-GPIO1.associatedPins[2].pin.$suggestSolution       = "PA16";
+GPIO1.associatedPins[0].pin.$suggestSolution       = "PA16";
+GPIO1.associatedPins[1].pin.$suggestSolution       = "PA8";
+GPIO1.associatedPins[2].pin.$suggestSolution       = "PA18";
+GPIO2.associatedPins[0].pin.$suggestSolution       = "PA9";
+GPIO3.associatedPins[0].pin.$suggestSolution       = "PB18";
+GPIO3.associatedPins[1].pin.$suggestSolution       = "PB19";
+GPIO3.associatedPins[2].pin.$suggestSolution       = "PB20";
+GPIO3.associatedPins[3].pin.$suggestSolution       = "PB24";
+GPIO4.associatedPins[0].pin.$suggestSolution       = "PA2";
+GPIO4.associatedPins[1].pin.$suggestSolution       = "PA7";
+GPIO4.associatedPins[2].pin.$suggestSolution       = "PA22";
+GPIO4.associatedPins[3].pin.$suggestSolution       = "PA23";
+GPIO4.associatedPins[4].pin.$suggestSolution       = "PA24";
+GPIO4.associatedPins[5].pin.$suggestSolution       = "PA27";
+GPIO4.associatedPins[6].pin.$suggestSolution       = "PB8";
+GPIO5.associatedPins[0].pin.$suggestSolution       = "PA12";
+GPIO5.associatedPins[1].pin.$suggestSolution       = "PA13";
+GPIO5.associatedPins[2].pin.$suggestSolution       = "PA14";
+GPIO5.associatedPins[3].pin.$suggestSolution       = "PA15";
 Board.peripheral.$suggestSolution                  = "DEBUGSS";
 Board.peripheral.swclkPin.$suggestSolution         = "PA20";
 Board.peripheral.swdioPin.$suggestSolution         = "PA19";

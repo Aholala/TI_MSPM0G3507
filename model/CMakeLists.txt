@@ -62,6 +62,12 @@ file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
     "${PROJECT_ROOT}/User/Lib/*.c"
 )
 
+# The board uses MPU6050 over I2C. Keep the legacy ICM45686 sources in the
+# repository for reference, but exclude their STM32-specific hardware path.
+list(FILTER USER_SOURCES EXCLUDE REGEX
+    "/(app_icm45686|icm45686_port|imu_task|module_icm45686|inv_imu_driver|inv_imu_transport)\\.c$"
+)
+
 file(GLOB_RECURSE USER_HEADERS CONFIGURE_DEPENDS
     "${PROJECT_ROOT}/User/*.h"
 )

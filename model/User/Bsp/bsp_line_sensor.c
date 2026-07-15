@@ -1,32 +1,30 @@
-/**
- * @file bsp_line_sensor.c
- * @author Ahola邱泽钦 (aholace0328@gmail.com)
- * @brief 
- * @version 1.0
- * @date 2026-07-06
- * 
- * @copyright Copyright (c) 2026
- * 
- */
-
 #include "bsp_line_sensor.h"
+
+#include <stddef.h>
+
+#include "ti_msp_dl_config.h"
 
 typedef struct
 {
-    GPIO_TypeDef *port;
-    uint16_t pin;
+    GPIO_Regs *port;
+    uint32_t pin;
 } BspLineSensor_Pin;
 
 static const BspLineSensor_Pin line_sensor_pins[LINE_TRACKER_SENSOR_COUNT] = {
-    {BOARD_LINE_SENSOR_0_GPIO_PORT, BOARD_LINE_SENSOR_0_GPIO_PIN},
-    {BOARD_LINE_SENSOR_1_GPIO_PORT, BOARD_LINE_SENSOR_1_GPIO_PIN},
-    {BOARD_LINE_SENSOR_2_GPIO_PORT, BOARD_LINE_SENSOR_2_GPIO_PIN},
-    {BOARD_LINE_SENSOR_3_GPIO_PORT, BOARD_LINE_SENSOR_3_GPIO_PIN},
-    {BOARD_LINE_SENSOR_4_GPIO_PORT, BOARD_LINE_SENSOR_4_GPIO_PIN},
-    {BOARD_LINE_SENSOR_5_GPIO_PORT, BOARD_LINE_SENSOR_5_GPIO_PIN},
-    {BOARD_LINE_SENSOR_6_GPIO_PORT, BOARD_LINE_SENSOR_6_GPIO_PIN},
-    {BOARD_LINE_SENSOR_7_GPIO_PORT, BOARD_LINE_SENSOR_7_GPIO_PIN},
+    {LINE_SENSOR_SENSOR1_PORT, LINE_SENSOR_SENSOR1_PIN},
+    {LINE_SENSOR_SENSOR2_PORT, LINE_SENSOR_SENSOR2_PIN},
+    {LINE_SENSOR_SENSOR3_PORT, LINE_SENSOR_SENSOR3_PIN},
+    {LINE_SENSOR_SENSOR4_PORT, LINE_SENSOR_SENSOR4_PIN},
+    {LINE_SENSOR_SENSOR5_PORT, LINE_SENSOR_SENSOR5_PIN},
+    {LINE_SENSOR_SENSOR6_PORT, LINE_SENSOR_SENSOR6_PIN},
+    {LINE_SENSOR_SENSOR7_PORT, LINE_SENSOR_SENSOR7_PIN},
 };
+
+volatile uint8_t g_debug_line_sensor_raw_mask;
+volatile uint8_t g_debug_line_sensor_filtered_mask;
+static uint8_t g_raw_history_1;
+static uint8_t g_raw_history_2;
+static uint8_t g_history_initialized;
 
 uint8_t BspLineSensor_ReadRawMask(void *user_ctx)
 {
@@ -34,26 +32,40 @@ uint8_t BspLineSensor_ReadRawMask(void *user_ctx)
     uint8_t mask = 0u;
 
     (void)user_ctx;
-
     for (index = 0u; index < LINE_TRACKER_SENSOR_COUNT; ++index)
     {
-        if (HAL_GPIO_ReadPin(line_sensor_pins[index].port,
-                             line_sensor_pins[index].pin) == GPIO_PIN_SET)
+        if (DL_GPIO_readPins(line_sensor_pins[index].port,
+                            line_sensor_pins[index].pin) != 0u)
         {
             mask |= (uint8_t)(1u << index);
         }
     }
+    g_debug_line_sensor_raw_mask = mask;
 
-    return mask;
+    if (g_history_initialized == 0u)
+    {
+        g_raw_history_1 = mask;
+        g_raw_history_2 = mask;
+        g_history_initialized = 1u;
+    }
+
+    /* Per-sensor majority vote over three 5 ms samples. This rejects one
+     * sample of comparator chatter at a black/white boundary. */
+    g_debug_line_sensor_filtered_mask =
+        (uint8_t)((mask & g_raw_history_1) |
+                  (mask & g_raw_history_2) |
+                  (g_raw_history_1 & g_raw_history_2));
+    g_raw_history_2 = g_raw_history_1;
+    g_raw_history_1 = mask;
+
+    return g_debug_line_sensor_filtered_mask;
 }
 
 void BspLineSensor_Bind(LineTracker_Ops *ops)
 {
-    if (ops == NULL)
+    if (ops != NULL)
     {
-        return;
+        ops->read_raw_mask = BspLineSensor_ReadRawMask;
+        ops->user_ctx = NULL;
     }
-
-    ops->read_raw_mask = BspLineSensor_ReadRawMask;
-    ops->user_ctx = NULL;
 }

@@ -1,18 +1,6 @@
-/**
- * @file bsp_tb6612.h
- * @author Ahola邱泽钦 (aholace0328@gmail.com)
- * @brief 
- * @version 1.0
- * @date 2026-07-06
- * 
- * @copyright Copyright (c) 2026
- * 
- */
-
 #ifndef BSP_TB6612_H
 #define BSP_TB6612_H
 
-#include "board_config.h"
 #include "module_motor.h"
 
 #ifdef __cplusplus
@@ -26,6 +14,7 @@ typedef enum
     BSP_TB6612_MOTOR_COUNT
 } BspTb6612_MotorId;
 
+/* Initialize both PWM channels stopped and both bridges in coast mode. */
 void BspTb6612_Init(void);
 void BspTb6612_BindMotor(BspTb6612_MotorId motor_id, DcMotor_Ops *ops);
 

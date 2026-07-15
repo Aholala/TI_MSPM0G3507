@@ -1,20 +1,7 @@
-/**
- * @file bsp_encoder.h
- * @author Ahola邱泽钦 (aholace0328@gmail.com)
- * @brief 
- * @version 1.0
- * @date 2026-07-06
- * 
- * @copyright Copyright (c) 2026
- * 
- */
-
 #ifndef BSP_ENCODER_H
 #define BSP_ENCODER_H
 
 #include <stdint.h>
-
-#include "board_config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +14,10 @@ typedef enum
     BSP_ENCODER_COUNT
 } BspEncoder_Id;
 
+/*
+ * E1 is treated as the left encoder and E2 as the right encoder.
+ * Both A and B phases are decoded on both edges in the GPIOB interrupt.
+ */
 void BspEncoder_Init(void);
 void BspEncoder_Reset(BspEncoder_Id encoder_id);
 int16_t BspEncoder_ReadDelta(BspEncoder_Id encoder_id);

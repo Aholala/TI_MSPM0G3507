@@ -22,13 +22,14 @@ extern "C" {
 #define APP_RACE_CONFIG_MAX_MODE 4u
 #define APP_RACE_CONFIG_MIN_LAPS 1u
 #define APP_RACE_CONFIG_MAX_LAPS 4u
-#define APP_RACE_CONFIG_PERIOD_MS 20u
+#define APP_RACE_CONFIG_PERIOD_MS 10u
 
 typedef enum
 {
     APP_RACE_STATE_IDLE = 0,
     APP_RACE_STATE_READY,
     APP_RACE_STATE_RUNNING,
+    APP_RACE_STATE_STOPPED,
     APP_RACE_STATE_FINISHED
 } AppRace_State;
 
@@ -41,15 +42,19 @@ typedef struct
 } AppRaceConfig_Snapshot;
 
 extern AppRaceConfig_Snapshot g_debug_race_config_snapshot;
+extern volatile uint32_t g_debug_key_timer_count;
 
 void AppRaceConfig_Init(uint32_t now_ms);
 void AppRaceConfig_RunOnce(uint32_t now_ms);
+void AppRaceConfig_DisplayRunOnce(uint32_t now_ms);
 AppRaceConfig_Snapshot AppRaceConfig_GetSnapshot(void);
 uint8_t AppRaceConfig_GetMode(void);
 uint8_t AppRaceConfig_GetTargetLaps(void);
 uint8_t AppRaceConfig_IsRunning(void);
-void AppRaceConfig_SetFinished(void);
+void AppRaceConfig_SetFinished(uint32_t now_ms);
 void AppRaceConfig_NotifyPoint(uint32_t now_ms);
+void AppRaceConfig_SetLapProgress(uint8_t current_lap, uint8_t target_laps);
+void AppRaceConfig_KeyTimer1ms(uint32_t now_ms);
 
 #ifdef __cplusplus
 }

@@ -1,15 +1,4 @@
-/**
- * @file module_pid.c
- * @author Ahola邱泽钦 (aholace0328@gmail.com)
- * @brief 
- * @version 1.0
- * @date 2026-07-06
- * 
- * @copyright Copyright (c) 2026
- * 
- */
-
-#include "module_pid.h"
+#include "lib_pid.h"
 
 #include <stddef.h>
 

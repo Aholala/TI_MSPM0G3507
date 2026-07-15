@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-#include "module_pid.h"
+#include "lib_pid.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,8 +31,14 @@ typedef struct
     int16_t right_speed;
     int16_t left_target_speed;
     int16_t right_target_speed;
+    int16_t left_target_rpm;
+    int16_t right_target_rpm;
     int16_t left_encoder_delta;
     int16_t right_encoder_delta;
+    int16_t left_actual_rpm;
+    int16_t right_actual_rpm;
+    int16_t left_actual_rpm_filtered;
+    int16_t right_actual_rpm_filtered;
     int32_t left_encoder_total;
     int32_t right_encoder_total;
     int32_t left_encoder_mrev;
@@ -49,9 +55,22 @@ void AppChassis_Init(void);
 void AppChassis_UpdateEncoder(void);
 void AppChassis_SetSpeedPidConfig(const PidController_Config *left_cfg,
                                   const PidController_Config *right_cfg);
+/* Runtime tuning values use x100 units: 650 means Kp = 6.50. */
+extern volatile int32_t g_left_speed_pid_kp_x100;
+extern volatile int32_t g_left_speed_pid_ki_x100;
+extern volatile int32_t g_left_speed_pid_kd_x100;
+extern volatile int32_t g_right_speed_pid_kp_x100;
+extern volatile int32_t g_right_speed_pid_ki_x100;
+extern volatile int32_t g_right_speed_pid_kd_x100;
+/* Independent PWM feedforward at rated RPM, range 0..1000. */
+extern volatile int16_t g_left_speed_feedforward_at_rated;
+extern volatile int16_t g_right_speed_feedforward_at_rated;
 PidController *AppChassis_GetLeftSpeedPid(void);
 PidController *AppChassis_GetRightSpeedPid(void);
 void AppChassis_SetTargetSpeed(int16_t left_target, int16_t right_target);
+/* Closed-loop differential drive for this chassis wiring:
+ * left = forward + turn, right = forward - turn. */
+void AppChassis_SetTargetVelocity(int16_t forward, int16_t turn);
 void AppChassis_SpeedControlRun(void);
 void AppChassis_SetMotorSpeed(int16_t left_speed, int16_t right_speed);
 void AppChassis_SetVelocity(int16_t forward, int16_t turn);

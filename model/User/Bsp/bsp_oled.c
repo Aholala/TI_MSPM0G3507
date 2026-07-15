@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @file bsp_oled.c
  * @author Ahola邱泽钦 (aholace0328@gmail.com)
  * @brief 
@@ -8,21 +8,19 @@
  * @copyright Copyright (c) 2026
  * 
  */
-#include "main.h"
 #include "bsp_oled.h"
-#include "i2c.h"
-#include <string.h>
+#include "bsp_oled_soft_i2c.h"
+#include "ti_msp_dl_config.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
-#define OLED_I2C_ADDRESS 0x78U
+#define OLED_I2C_ADDRESS_7BIT 0x3CU
 #define OLED_I2C_CONTROL_COMMAND 0x00U
 #define OLED_I2C_CONTROL_DATA 0x40U
-#define OLED_I2C_TIMEOUT_MS 20U
 #define OLED_I2C_MAX_DATA_COUNT 128U
-#define OLED_POWER_ON_DELAY_MS 50U
-
+#define OLED_POWER_ON_DELAY_MS 100U
 /**
   * 数据存储格式：
   * 纵向8点，高位在下，先从左到右，再从上到下
@@ -84,51 +82,15 @@ uint8_t OLED_DisplayBuf[8][128];
 
 /**********************通信协议*********************/
 
-static HAL_StatusTypeDef OLED_I2C_WaitReady(uint32_t TimeoutMs)
+static uint8_t OLED_I2C_TransmitBlocking(const uint8_t *Data, uint16_t Count)
 {
-	uint32_t StartTick = HAL_GetTick();
+	uint8_t address = g_oled_soft_i2c_detected_address;
 
-	while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)
+	if (address == 0U)
 	{
-		if ((HAL_GetTick() - StartTick) >= TimeoutMs)
-		{
-			return HAL_TIMEOUT;
-		}
+		address = OLED_I2C_ADDRESS_7BIT;
 	}
-
-	return HAL_OK;
-}
-
-static HAL_StatusTypeDef OLED_I2C_TransmitBlocking(uint8_t *Data, uint16_t Count)
-{
-	if (OLED_I2C_WaitReady(OLED_I2C_TIMEOUT_MS) != HAL_OK)
-	{
-		return HAL_TIMEOUT;
-	}
-
-	return HAL_I2C_Master_Transmit(&hi2c1,
-	                               OLED_I2C_ADDRESS,
-	                               Data,
-	                               Count,
-	                               OLED_I2C_TIMEOUT_MS);
-}
-
-static HAL_StatusTypeDef OLED_I2C_TransmitDma(uint8_t *Data, uint16_t Count)
-{
-	HAL_StatusTypeDef Status;
-
-	if (OLED_I2C_WaitReady(OLED_I2C_TIMEOUT_MS) != HAL_OK)
-	{
-		return HAL_TIMEOUT;
-	}
-
-	Status = HAL_I2C_Master_Transmit_DMA(&hi2c1, OLED_I2C_ADDRESS, Data, Count);
-	if (Status != HAL_OK)
-	{
-		return Status;
-	}
-
-	return OLED_I2C_WaitReady(OLED_I2C_TIMEOUT_MS);
+	return BspOledSoftI2c_Write(address, Data, Count);
 }
 /**
   * 函    数：OLED写命令
@@ -152,7 +114,7 @@ void OLED_WriteCommand(uint8_t Command)
   */
 void OLED_WriteData(uint8_t *Data, uint8_t Count)
 {
-	static uint8_t DmaBuffer[OLED_I2C_MAX_DATA_COUNT + 1U];
+	uint8_t Buffer[OLED_I2C_MAX_DATA_COUNT + 1U];
 
 	if ((Data == NULL) || (Count == 0U))
 	{
@@ -164,9 +126,11 @@ void OLED_WriteData(uint8_t *Data, uint8_t Count)
 		Count = OLED_I2C_MAX_DATA_COUNT;
 	}
 
-	DmaBuffer[0] = OLED_I2C_CONTROL_DATA;
-	memcpy(&DmaBuffer[1], Data, Count);
-	(void)OLED_I2C_TransmitDma(DmaBuffer, (uint16_t)Count + 1U);
+	Buffer[0] = OLED_I2C_CONTROL_DATA;
+	memcpy(&Buffer[1], Data, Count);
+	/* SSD1306 accepts a continuous data stream after control byte 0x40.
+	 * Sending a whole page in one transaction avoids 128 START/STOP pairs. */
+	(void)OLED_I2C_TransmitBlocking(Buffer, (uint16_t)Count + 1U);
 }
 
 /*********************通信协议**********************/
@@ -182,8 +146,9 @@ void OLED_WriteData(uint8_t *Data, uint8_t Count)
   */
 void OLED_Init(void)
 {
-	/* I2C1 and DMA are initialized by CubeMX before OLED_Init is called. */
-	HAL_Delay(OLED_POWER_ON_DELAY_MS);
+	BspOledSoftI2c_Init();
+	/* Power-on settling delay; used only once during display initialization. */
+	delay_cycles((CPUCLK_FREQ / 1000u) * OLED_POWER_ON_DELAY_MS);
 	
 	/*写入一系列的命令，对OLED进行初始化配置*/
 	OLED_WriteCommand(0xAE);	//设置显示开启/关闭，0xAE关闭，0xAF开启
@@ -213,7 +178,11 @@ void OLED_Init(void)
 	OLED_WriteCommand(0xF1);
 
 	OLED_WriteCommand(0xDB);	//设置VCOMH取消选择级别
-	OLED_WriteCommand(0x30);
+	OLED_WriteCommand(0x40);
+
+	/* Explicit page addressing mode used by the supplied reference driver. */
+	OLED_WriteCommand(0x20);
+	OLED_WriteCommand(0x02);
 
 	OLED_WriteCommand(0xA4);	//设置整个显示打开/关闭
 
@@ -1403,4 +1372,3 @@ void OLED_DrawArc(int16_t X, int16_t Y, uint8_t Radius, int16_t StartAngle, int1
 }
 
 /*********************功能函数**********************/
-

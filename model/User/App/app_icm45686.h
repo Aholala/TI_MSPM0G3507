@@ -23,9 +23,12 @@ typedef struct {
 	imu_solution_t solution;
 	uint8_t initialized;
 	uint8_t data_ready;
+	uint8_t gyro_calibrated;
+	uint16_t gyro_calibration_count;
 	int last_init_status;
 	int last_process_status;
 	uint32_t update_count;
+	float continuous_yaw_deg;
 } app_icm45686_snapshot_t;
 
 extern app_icm45686_snapshot_t g_debug_icm45686_snapshot;
@@ -43,5 +46,9 @@ const imu_solution_t *icm45686_app_get_solution(void);
 icm45686_module_t *icm45686_app_get_module(void);
 app_icm45686_snapshot_t icm45686_app_get_snapshot(void);
 float icm45686_app_get_yaw_deg(void);
+float icm45686_app_get_continuous_yaw_deg(void);
+uint8_t icm45686_app_is_gyro_calibrated(void);
+void icm45686_app_reset_yaw(void);
+float icm45686_app_get_yaw_error_deg(float target_yaw_deg);
 
 #endif

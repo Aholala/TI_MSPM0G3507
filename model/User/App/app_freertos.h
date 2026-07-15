@@ -3,4 +3,4 @@
 
 void App_FreeRTOS_CreateTasks(void);
 
-#endif /* APP_FREERTOS_H */
+#endif
